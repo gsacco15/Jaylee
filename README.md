@@ -13,7 +13,7 @@ npm run dev     # full site + /api/chat locally via the Vercel CLI
 
 1. Import this GitHub repo in Vercel (framework preset: **Other**). `vercel.json` already sets the build command (`npm run build`) and the output folder (`public`).
 2. Add the environment variable `ANTHROPIC_API_KEY` (Project → Settings → Environment Variables).
-3. Optional: set `JAYLEE_MODEL` to change the model (default `claude-opus-5-5`).
+3. Optional: set `JAYLEE_MODEL` to `claude-sonnet-5-5` to make chat cheaper (default `claude-opus-5-5`). Older models such as Haiku don't accept every option the request sends.
 
 Without the key, the playground still works fully. Only the chat answers "not set up yet".
 
