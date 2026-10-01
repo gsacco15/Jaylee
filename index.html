@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Jaylee's Playground</title>
-  <meta name="description" content="A virtual backyard and pool for Jaylee the pup — call her, throw her ball, and watch her swim." />
+  <meta name="description" content="A virtual backyard and pool for Jaylee the pup. She has a mind of her own." />
   <meta name="theme-color" content="#f7efe6" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -17,57 +17,47 @@
       <span class="collar" aria-hidden="true"></span>
       <div>
         <h1>Jaylee's Playground</h1>
-        <p class="sub">Backyard, pool &amp; one very good girl</p>
+        <p class="sub">Feeling <strong id="mood">Happy</strong></p>
       </div>
     </div>
-    <dl class="stats" aria-live="polite">
-      <div><dt>Fetches</dt><dd id="stat-fetch">0</dd></div>
-      <div><dt>Swims</dt><dd id="stat-swim">0</dd></div>
-      <div><dt>Pets</dt><dd id="stat-pet">0</dd></div>
-    </dl>
+    <div class="meters" aria-label="How Jaylee is feeling">
+      <div class="meter" id="m-energy" style="--v:.8"><span>Energy</span><i></i></div>
+      <div class="meter" id="m-happy" style="--v:.8"><span>Happiness</span><i></i></div>
+      <div class="meter cool" id="m-cool" style="--v:.6"><span>Cool</span><i></i></div>
+    </div>
   </header>
 
   <main>
     <section class="stage-wrap" aria-label="Jaylee's playground">
       <canvas id="stage" role="img" aria-label="Jaylee playing in her backyard with a pool"></canvas>
-      <div class="status" id="status" aria-live="polite">Jaylee is settling in…</div>
+      <div class="status" id="status" aria-live="polite">Hi! I'm Jaylee</div>
       <p class="hint">Tap the lawn to call her · tap the pool to swim · tap Jaylee to pet</p>
     </section>
 
     <section class="controls" aria-label="Play with Jaylee">
       <div class="group">
         <button class="btn primary" data-act="ball">Throw ball</button>
+        <button class="btn primary" data-act="treat">Give treat</button>
         <button class="btn primary" data-act="swim">Go swim</button>
-        <button class="btn primary" data-act="zoomies">Zoomies</button>
       </div>
       <div class="group">
         <button class="btn" data-act="sit">Sit</button>
-        <button class="btn" data-act="wave">Wave hi</button>
+        <button class="btn" data-act="wave">Wave</button>
         <button class="btn" data-act="hop">Hop</button>
-        <button class="btn" data-act="sniff">Sniff</button>
-        <button class="btn" data-act="curious">Curious</button>
-        <button class="btn" data-act="beg">Play beg</button>
         <button class="btn" data-act="wink">Wink</button>
         <button class="btn" data-act="look">Look around</button>
+        <button class="btn" data-act="zoomies">Zoomies</button>
       </div>
       <label class="toggle">
         <input type="checkbox" id="roam" checked />
         <span class="track" aria-hidden="true"></span>
-        Free roam
+        Let her decide
       </label>
-    </section>
-
-    <section class="moves">
-      <div class="moves-head">
-        <h2>Jaylee's move set</h2>
-        <p>Every animation in her sprite sheet. Tap one to see her do it.</p>
-      </div>
-      <div class="move-grid" id="moves"></div>
     </section>
   </main>
 
-  <footer>Made for Jaylee 🐾</footer>
+  <footer id="stats">0 fetches · 0 swims · 0 pets · 0 treats</footer>
 
-  <script src="app.js"></script>
+  <script type="module" src="dist/main.js"></script>
 </body>
 </html>
