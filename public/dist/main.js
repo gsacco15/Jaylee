@@ -1,6 +1,7 @@
 /** Boot: wires the game, renderer, page UI and the public `window.jaylee` API. */
 import { Game } from './game.js';
 import { Renderer } from './render.js';
+import { Chat } from './chat.js';
 const $ = (sel) => {
     const el = document.querySelector(sel);
     if (!el)
@@ -86,6 +87,8 @@ window.jaylee = {
     setAutonomy: (on) => { game.autonomy = on; $('#roam').checked = on; },
     on: (fn) => game.on(fn),
 };
+// ---------- Chat ----------
+const chat = new Chat(game, $('#chat-log'), $('#chat-form'), $('#chat-input'));
 // ---------- Layout & loop ----------
 let layoutKey = '';
 function resize() {
@@ -102,6 +105,7 @@ function frame(now) {
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
     game.update(dt);
+    chat.tick();
     renderer.draw(dt);
     if ((uiT -= dt) <= 0) {
         updateUI();

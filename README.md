@@ -1,15 +1,29 @@
 # Jaylee's Playground
 
-A small virtual backyard and pool for Jaylee. She has needs, a personality, and her own ideas about what to do next.
+A small virtual backyard and pool for Jaylee. She has needs, a personality, her own ideas about what to do next, and you can chat with her.
 
 ```bash
 npm install
-npm run build   # compiles src/ (TypeScript) into dist/
-npm test        # brain + route tests
-npm run serve   # http://localhost:8080
+npm test        # builds, typechecks, runs brain/route/API tests
+npm run serve   # static site only, at http://localhost:8080 (chat needs `npm run dev`)
+npm run dev     # full site + /api/chat locally via the Vercel CLI
 ```
 
-`dist/` is committed so the site works as plain static files, for example on GitHub Pages.
+## Deploy to Vercel
+
+1. Import this GitHub repo in Vercel (framework preset: **Other**). `vercel.json` already sets the build command (`npm run build`) and the output folder (`public`).
+2. Add the environment variable `ANTHROPIC_API_KEY` (Project → Settings → Environment Variables).
+3. Optional: set `JAYLEE_MODEL` to change the model (default `claude-opus-5-5`).
+
+Without the key, the playground still works fully. Only the chat answers "not set up yet".
+
+## Project layout
+
+| Path | What it is |
+|---|---|
+| `public/` | The static site: `index.html`, `style.css`, `assets/` (sprite sheet), `dist/` (compiled TypeScript) |
+| `api/chat.ts` | Vercel function: Claude plays Jaylee and picks actions through tools |
+| `src/chat.ts` | Chat panel; validates the actions that come back and queues them for the game |
 
 ## How she works
 
@@ -39,7 +53,14 @@ jaylee.options()                             // what her brain is weighing right
 jaylee.on(e => console.log(e))               // say / decision / world events
 ```
 
-Every `Intent` is a typed union, so a future chat personality can be given these as tools and stay type-safe.
+Every `Intent` is a typed union. The chat maps Claude's tool calls onto these intents, so whatever she says, she can only do things the game understands, and her brain can still say no.
+
+### Chat
+
+`POST /api/chat` takes `{ messages: [{ role, text }], state: Snapshot }` and returns `{ reply, intents }`.
+- The persona prompt lives in `api/chat.ts`. Her live state (mood, needs, whether she is in the pool, where the ball is) is sent as a system message, so her words match how she feels.
+- She has 8 action tools (swim, leave the pool, fetch, tricks, zoomies, wander, rest, come to her human), with at most 2 actions per reply.
+- Abuse guards: the last 20 messages are kept, each message is limited to 500 characters, and the reply size is capped. There is no login or rate limit, so watch usage on your Anthropic account.
 
 ## Sprite sheet states
 

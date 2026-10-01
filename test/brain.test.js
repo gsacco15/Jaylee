@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { Brain } from '../dist/brain.js';
-import { Yard } from '../dist/world.js';
+import { Brain } from '../public/dist/brain.js';
+import { Yard } from '../public/dist/world.js';
 
 const land = { medium: 'land', ball: 'none', timeInWater: 0 };
 const fixed = () => 0.5;

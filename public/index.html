@@ -27,7 +27,7 @@
     </div>
   </header>
 
-  <main>
+  <main class="layout">
     <section class="stage-wrap" aria-label="Jaylee's playground">
       <canvas id="stage" role="img" aria-label="Jaylee playing in her backyard with a pool"></canvas>
       <div class="status" id="status" aria-live="polite">Hi! I'm Jaylee</div>
@@ -53,6 +53,21 @@
         <span class="track" aria-hidden="true"></span>
         Let her decide
       </label>
+    </section>
+
+    <section class="chat" aria-label="Chat with Jaylee">
+      <header class="chat-head">
+        <span class="collar small" aria-hidden="true"></span>
+        <div>
+          <h2>Talk to Jaylee</h2>
+          <p>She'll answer, and might do what you ask</p>
+        </div>
+      </header>
+      <ol class="chat-log" id="chat-log" aria-live="polite"></ol>
+      <form class="chat-form" id="chat-form" autocomplete="off">
+        <input id="chat-input" name="message" maxlength="500" placeholder="Say something to Jaylee…" aria-label="Message to Jaylee" />
+        <button class="btn primary" type="submit">Send</button>
+      </form>
     </section>
   </main>
 

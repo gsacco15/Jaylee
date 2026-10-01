@@ -105,7 +105,8 @@ export class Game {
         }
         const decision = this.brain.consider(intent, source, this.context());
         this.emit({ type: 'decision', intent, source, decision });
-        this.say(decision.line);
+        if (source !== 'chat' || !decision.accept)
+            this.say(decision.line);
         if (!decision.accept)
             return decision;
         this.idleFor = 0;

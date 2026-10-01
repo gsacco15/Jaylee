@@ -1,6 +1,7 @@
 /** Boot: wires the game, renderer, page UI and the public `window.jaylee` API. */
 import { Game, type GameListener } from './game.js';
 import { Renderer } from './render.js';
+import { Chat } from './chat.js';
 import type { Option } from './brain.js';
 import type { Decision, Intent, Snapshot, Trick } from './types.js';
 
@@ -106,6 +107,9 @@ window.jaylee = {
   on: (fn) => game.on(fn),
 };
 
+// ---------- Chat ----------
+const chat = new Chat(game, $('#chat-log'), $<HTMLFormElement>('#chat-form'), $<HTMLInputElement>('#chat-input'));
+
 // ---------- Layout & loop ----------
 let layoutKey = '';
 function resize(): void {
@@ -120,6 +124,7 @@ function frame(now: number): void {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
   game.update(dt);
+  chat.tick();
   renderer.draw(dt);
   if ((uiT -= dt) <= 0) { updateUI(); uiT = 0.25; }
   requestAnimationFrame(frame);
