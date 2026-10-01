@@ -58,7 +58,7 @@ const CARDS: Readonly<Record<DogId, CharacterCard>> = {
   hegla: {
     name: 'Hegla',
     pronouns: 'they/them (placeholder until the real card arrives)',
-    looks: 'a playful pup with a darker coat',
+    looks: 'a black-and-tan pup with floppy ears, tan eyebrows and paws, and a pink collar with a heart tag',
     personality: ['bouncy and mischievous', 'very social; always up for a game', 'curious about everything'],
     loves: ['chase games', 'stealing the ball first', 'sniffing new smells'],
     dislikes: ['being left out', 'baths'],

@@ -27,6 +27,30 @@ export const ROWS = {
     swimL: { sheet: 'swim', row: 1, frames: 8, feet: 410, directional: true, scale: 0.66, sink: 62, mouth: [100, 85] },
 };
 export const JAYLEE_SPRITES = { sheets: SHEETS, rows: ROWS };
+/**
+ * Hegla: assets/hegla-sprites.webp, same 8 × 11 layout as Jaylee's main sheet.
+ * No swim sheet yet, so in the pool Hegla paddles with the run rows (cut at the waterline).
+ */
+const heglaMain = { src: 'assets/hegla-sprites.webp', cellW: 1343 / 8, cellH: 2000 / 11 };
+const hegla = (row, frames, feet, directional = false, mouth = [28, 96]) => ({ sheet: 'main', row, frames, feet, directional, scale: 1, sink: 46, mouth });
+export const HEGLA_SPRITES = {
+    sheets: { main: heglaMain, swim: heglaMain },
+    rows: {
+        sit: hegla(0, 6, 173),
+        runR: hegla(1, 8, 354, true, [42, 66]),
+        runL: hegla(2, 8, 536, true, [42, 66]),
+        wave: hegla(3, 4, 718),
+        hop: hegla(4, 5, 904),
+        sniff: hegla(5, 8, 1081),
+        curious: hegla(6, 6, 1263),
+        beg: hegla(7, 6, 1445),
+        wink: hegla(8, 6, 1627),
+        lookR: hegla(9, 8, 1810),
+        lookL: hegla(10, 8, 1992),
+        swimR: { ...hegla(1, 8, 354, true, [42, 66]), sink: 50 },
+        swimL: { ...hegla(2, 8, 536, true, [42, 66]), sink: 50 },
+    },
+};
 const seq = (key, cols, dur) => cols.map((col, i) => ({ key, col, dur: typeof dur === 'number' ? dur : dur[i] ?? 0.15 }));
 const run8 = [0, 1, 2, 3, 4, 5, 6, 7];
 /** Animation recipes. Functions so idle holds can vary each time. */

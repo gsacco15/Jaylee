@@ -39,7 +39,7 @@ The switcher in the header picks **Jaylee**, **Hegla** or **Both** (remembered i
 - **Character card** (`CARDS` in `api/chat.ts`): pronouns, looks, personality, loves, dislikes, quirks, voice, and how they are with the other dog.
 - **Sprites** (`src/sprites.ts`): a `SpriteSet` must provide every row (`sit`, `runR`, `runL`, `wave`, `hop`, `sniff`, `curious`, `beg`, `wink`, `lookR`, `lookL`, `swimR`, `swimL`). Give the new sheets and rows their own set and point the dog's profile at it.
 
-Hegla currently borrows Jaylee's art with a darker filter (`standIn: true`) and has a placeholder card, until the real ones arrive.
+Hegla's art is `public/assets/hegla-sprites.webp` (same 8 × 11 layout as Jaylee's main sheet, 73 frames). There's no Hegla swim sheet yet, so in the pool Hegla paddles with the run rows, cut at the waterline. Add a swim sheet later and point `swimR`/`swimL` in `HEGLA_SPRITES` at it. Hegla's character card and personality numbers are still placeholders.
 
 ## How she works
 

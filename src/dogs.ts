@@ -2,7 +2,7 @@
  * The dogs. Each has their own art, personality and voice.
  * Their chat character cards live server-side in api/chat.ts (same ids).
  */
-import { JAYLEE_SPRITES, type SpriteSet } from './sprites.js';
+import { HEGLA_SPRITES, JAYLEE_SPRITES, type SpriteSet } from './sprites.js';
 import type { Personality } from './types.js';
 
 export type DogId = 'jaylee' | 'hegla';
@@ -47,17 +47,13 @@ export const DOGS: Readonly<Record<DogId, DogProfile>> = {
   hegla: {
     id: 'hegla',
     name: 'Hegla',
-    accent: '#5b8def',
+    accent: '#a8641a',
     // Placeholder personality until Hegla's character card arrives.
     personality: {
       name: 'Hegla',
       traits: { waterLove: 0.45, playfulness: 0.95, curiosity: 0.85, cuddliness: 0.6, obedience: 0.6, sociability: 0.9 },
     },
-    // Stand-in: Jaylee's art with a darker coat, until Hegla's sprites arrive.
-    sprites: JAYLEE_SPRITES,
-    filter: 'saturate(0.55) brightness(0.68) contrast(1.15)',
-    scale: 0.95,
-    standIn: true,
+    sprites: HEGLA_SPRITES,
     lines: {
       pet: ['More scratches!', 'Best human ever', 'Right there, yes!'],
       gotBall: ['Ha! Got it first!', 'Ball secured!'],

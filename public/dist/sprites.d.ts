@@ -36,6 +36,7 @@ export interface SpriteSet {
     readonly rows: Readonly<Record<RowKey, RowInfo>>;
 }
 export declare const JAYLEE_SPRITES: SpriteSet;
+export declare const HEGLA_SPRITES: SpriteSet;
 export interface Frame {
     readonly key: RowKey;
     readonly col: number;
