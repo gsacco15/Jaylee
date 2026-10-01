@@ -1,6 +1,6 @@
 # Jaylee's Playground
 
-A small virtual backyard and pool for Jaylee and Hegla. Each dog has needs, a personality, and their own ideas about what to do next. You can have one dog in the yard or both, chat with them, and watch them play together.
+A small virtual backyard and pool for Jaylee and Helga. Each dog has needs, a personality, and their own ideas about what to do next. You can have one dog in the yard or both, chat with them, and watch them play together.
 
 ```bash
 npm install
@@ -27,11 +27,18 @@ Without the key, the playground still works fully. Only the chat answers "not se
 
 ## Dogs
 
-The switcher in the header picks **Jaylee**, **Hegla** or **Both** (remembered in the browser). In Both mode:
+The switcher in the header picks **Jaylee**, **Helga** or **Both** (remembered in the browser). In Both mode:
 - Tap a dog to pet them and select them. The buttons and meters follow the selected dog.
 - The dogs play on their own: chase (play bow, one runs off, the other chases them around the pool), sniff greetings, swimming together, and racing for the ball (the loser may chase the winner).
 - A `social` need ("wants to play with friend") only builds while the other dog is in the yard, and each dog's `sociability` trait scales it.
 - The chat becomes a group chat: Claude voices each dog from their own character card, and every tool call says which dog acts.
+
+### Personalities (from their character cards)
+
+- **Jaylee** (Gabby's dog): an affectionate pit bull who loves people, toys, tug and swimming. A strong, cuddly big baby who doesn't know her own strength, is scared of thunder and weird things, loves warm laundry, and isn't a fan of other dogs (low `sociability`, so she often turns Helga down).
+- **Helga** (Shannah's dog): sweet, playful and very expressive. Spooks easily, adores Shannah and listens well (high `obedience`), and is cautious with strangers.
+
+The **"I'm …" picker** in the chat (Gabby, Shannah, or a guest) tells the dogs who is talking. A dog's own person makes them run over happy. A guest spooks Helga, who bolts to the back of the yard. The `scared` feeling works per dog: Helga runs off and hides, while Jaylee runs to her people for comfort.
 
 ### Adding a dog's art and character
 
@@ -39,7 +46,7 @@ The switcher in the header picks **Jaylee**, **Hegla** or **Both** (remembered i
 - **Character card** (`CARDS` in `api/chat.ts`): pronouns, looks, personality, loves, dislikes, quirks, voice, and how they are with the other dog.
 - **Sprites** (`src/sprites.ts`): a `SpriteSet` must provide every row (`sit`, `runR`, `runL`, `wave`, `hop`, `sniff`, `curious`, `beg`, `wink`, `lookR`, `lookL`, `swimR`, `swimL`). Give the new sheets and rows their own set and point the dog's profile at it.
 
-Hegla's art is `public/assets/hegla-sprites.webp` (same 8 × 11 layout as Jaylee's main sheet, 73 frames). There's no Hegla swim sheet yet, so in the pool Hegla paddles with the run rows, cut at the waterline. Add a swim sheet later and point `swimR`/`swimL` in `HEGLA_SPRITES` at it. Hegla's character card and personality numbers are still placeholders.
+Helga's art is `public/assets/helga-sprites.webp` (same 8 × 11 layout as Jaylee's main sheet, 73 frames). There's no Helga swim sheet yet, so in the pool Helga paddles with the run rows, cut at the waterline. Add a swim sheet later and point `swimR`/`swimL` in `HELGA_SPRITES` at it. Helga's character card and personality numbers are still placeholders.
 
 ## How she works
 
@@ -64,11 +71,11 @@ Hegla's art is `public/assets/hegla-sprites.webp` (same 8 × 11 layout as Jaylee
 ### Control API (browser console now, chat or AI later)
 
 ```js
-playground.request({ kind: 'swim' }, 'hegla')  // → { accept, line } (default dog: the selected one)
+playground.request({ kind: 'swim' }, 'helga')  // → { accept, line } (default dog: the selected one)
 playground.request({ kind: 'playWith' })       // play chase with the other dog
 playground.snapshot('jaylee')                  // position, mood, needs, traits, friend...
 playground.options()                           // what the selected dog's brain is weighing
-playground.setMode('both')                     // 'jaylee' | 'hegla' | 'both'
+playground.setMode('both')                     // 'jaylee' | 'helga' | 'both'
 playground.on(e => console.log(e))             // say / decision / world events (each tagged with its dog)
 ```
 

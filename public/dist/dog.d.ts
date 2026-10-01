@@ -50,6 +50,8 @@ export declare class Dog {
     hear(): void;
     /** A feeling from chat. */
     sense(emotion: Emotion): void;
+    /** Spooked: some dogs bolt to the back of the yard, some run to their people. */
+    spook(): void;
     pet(): void;
     /** The other dog wants to play chase: run off, then play-bow. */
     private beChased;

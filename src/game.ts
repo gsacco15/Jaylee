@@ -28,7 +28,7 @@ export type GameEvent =
 
 export type GameListener = (e: GameEvent) => void;
 
-const START: Readonly<Record<DogId, Vec>> = { jaylee: { x: 0.3, y: 0.6 }, hegla: { x: 0.2, y: 0.78 } };
+const START: Readonly<Record<DogId, Vec>> = { jaylee: { x: 0.3, y: 0.6 }, helga: { x: 0.2, y: 0.78 } };
 
 export class Game {
   readonly yard = new Yard();

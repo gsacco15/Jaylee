@@ -153,6 +153,14 @@ $<HTMLInputElement>('#roam').addEventListener('change', (e) => {
 
 // ---------- Chat ----------
 const chat = new Chat(game, $('#chat-log'), $<HTMLFormElement>('#chat-form'), $<HTMLInputElement>('#chat-input'), saveTraits);
+const humanSel = $<HTMLSelectElement>('#human');
+const savedHuman = store.get('playground:human');
+if (savedHuman && [...humanSel.options].some((o) => o.value === savedHuman)) humanSel.value = savedHuman;
+chat.human = humanSel.value;
+humanSel.addEventListener('change', () => {
+  store.set('playground:human', humanSel.value);
+  chat.humanChanged(humanSel.value, humanSel.selectedOptions[0]?.textContent ?? 'Someone');
+});
 
 // ---------- Public API ----------
 const pick = (id?: DogId): Dog => (id && game.dogAt(id)) || game.selected;

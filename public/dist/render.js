@@ -271,7 +271,7 @@ export class Renderer {
         const f = dog.anim.frame, row = set.rows[f.key], sheet = set.sheets[row.sheet];
         const p = this.p(dog.pos), s = this.s(dog.pos.y) * (dog.profile.scale ?? 1), rs = s * row.scale;
         const sink = row.sink * dog.submerged * rs; // screen px of the dog below the waterline
-        const bob = sink ? Math.sin(g.time * 3.2 + (dog.id === 'hegla' ? 1.7 : 0)) * 2.2 * s : 0;
+        const bob = sink ? Math.sin(g.time * 3.2 + (dog.id === 'helga' ? 1.7 : 0)) * 2.2 * s : 0;
         const both = g.dogs.length > 1;
         if (!sink)
             this.shadow(dog.pos, 62);

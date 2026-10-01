@@ -148,6 +148,15 @@ $('#roam').addEventListener('change', (e) => {
 });
 // ---------- Chat ----------
 const chat = new Chat(game, $('#chat-log'), $('#chat-form'), $('#chat-input'), saveTraits);
+const humanSel = $('#human');
+const savedHuman = store.get('playground:human');
+if (savedHuman && [...humanSel.options].some((o) => o.value === savedHuman))
+    humanSel.value = savedHuman;
+chat.human = humanSel.value;
+humanSel.addEventListener('change', () => {
+    store.set('playground:human', humanSel.value);
+    chat.humanChanged(humanSel.value, humanSel.selectedOptions[0]?.textContent ?? 'Someone');
+});
 // ---------- Public API ----------
 const pick = (id) => (id && game.dogAt(id)) || game.selected;
 window.playground = window.jaylee = {

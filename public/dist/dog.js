@@ -151,6 +151,37 @@ export class Dog {
         this.feel({ type: 'feeling', emotion });
         if (emotion === 'loved')
             this.g.fx.push({ type: 'hearts', at: { ...this.pos }, n: 4 });
+        if (emotion === 'scared')
+            this.spook();
+    }
+    /** Spooked: some dogs bolt to the back of the yard, some run to their people. */
+    spook() {
+        const lines = this.profile.lines.scared;
+        this.say(lines[Math.floor(Math.random() * lines.length)]);
+        if (this.jumping)
+            return;
+        this.pending = null;
+        this.idleFor = 0;
+        this.nextThink = 10;
+        if (this.profile.whenScared === 'comfort') {
+            this.start({ kind: 'seekAttention' });
+            return;
+        }
+        // Wide-eyed look, then bolt somewhere far from the front of the yard.
+        const y = this.g.yard;
+        const hide = y.randomLand({ x: this.pos.x < 0.5 ? 0.15 : 0.85, y: 0.12 }, 0.2);
+        this.current = { kind: 'rest' };
+        this.cur = null;
+        const steps = [{ type: 'anim', anim: 'curious' }];
+        let at = this.pos, medium = this.medium;
+        for (const leg of y.route(at, medium, hide)) {
+            steps.push(legToStep(leg));
+            at = leg.to;
+            if (leg.type === 'jump')
+                medium = leg.into;
+        }
+        steps.push({ type: 'anim', anim: 'look' }, { type: 'idle', secs: 2.5 });
+        this.queue = steps;
     }
     pet() {
         this.stats.pets++;
@@ -169,9 +200,12 @@ export class Dog {
         if (this.jumping || this.medium !== 'land')
             return false;
         const d = this.brain.consider({ kind: 'playWith' }, 'friend', this.context());
-        this.say(d.line);
-        if (!d.accept)
+        if (!d.accept) {
+            const no = this.profile.lines.noPlay;
+            this.say(no[Math.floor(Math.random() * no.length)]);
             return false;
+        }
+        this.say(d.line);
         this.idleFor = 0;
         // Replace her own chase plan with fleeing.
         const away = this.g.yard.randomLand({ x: this.pos.x * 2 - by.pos.x, y: this.pos.y * 2 - by.pos.y }, 0.35);

@@ -5,7 +5,7 @@
 import { Dog } from './dog.js';
 import { DOGS, DOG_IDS } from './dogs.js';
 import { Camera, Yard, dist } from './world.js';
-const START = { jaylee: { x: 0.3, y: 0.6 }, hegla: { x: 0.2, y: 0.78 } };
+const START = { jaylee: { x: 0.3, y: 0.6 }, helga: { x: 0.2, y: 0.78 } };
 export class Game {
     yard = new Yard();
     cam = new Camera();

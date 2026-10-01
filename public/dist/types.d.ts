@@ -108,7 +108,7 @@ export type WorldEvent = {
     emotion: Emotion;
 };
 /** How something said in chat made her feel. Shifts her needs. */
-export type Emotion = 'loved' | 'excited' | 'calm' | 'curious' | 'sad' | 'hot';
+export type Emotion = 'loved' | 'excited' | 'calm' | 'curious' | 'sad' | 'hot' | 'scared';
 /** Lasting habit changes her human can ask for in chat. Shifts her traits. */
 export type Habit = 'swimMore' | 'swimLess' | 'playMore' | 'playLess' | 'cuddleMore' | 'cuddleLess' | 'exploreMore' | 'exploreLess' | 'listenMore' | 'friendlier' | 'moreIndependent';
 /** Read-only view of Jaylee, safe to hand to UI or an AI model. */

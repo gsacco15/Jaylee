@@ -266,6 +266,14 @@ h1 { font-size: clamp(1.25rem, 3.6vw, 1.7rem); margin: 0; font-weight: 700; lett
 .msg.assistant b { display: block; font-size: 0.75rem; color: var(--accent, var(--muted)); margin-bottom: 2px; }
 @media (max-width: 640px) { .dog-switch { order: -1; width: 100%; } .dog-switch button { flex: 1; } }
 
+.chat-head { flex-wrap: wrap; }
+.chat-head .who { flex-basis: 100%; padding-left: 40px; display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--muted); }
+.chat-head select {
+  font: inherit; font-size: 0.85rem; color: var(--ink); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 999px; padding: 5px 10px;
+}
+.chat-head select:focus-visible { outline: 2px solid var(--pink); outline-offset: 1px; }
+
 footer { padding-top: 32px; padding-bottom: 32px; color: var(--muted); font-size: 0.85rem; text-align: center; }
 
 @media (max-width: 640px) {

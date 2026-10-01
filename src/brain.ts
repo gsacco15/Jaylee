@@ -81,6 +81,7 @@ function applyEmotion(n: Needs, e: Emotion): void {
     case 'curious': add('curiosity', 0.45); break;
     case 'sad': add('affection', 0.45); add('boredom', 0.1); break;
     case 'hot': add('heat', 0.4); break;
+    case 'scared': add('affection', 0.35); add('boredom', -0.2); add('curiosity', -0.3); break;
   }
 }
 
@@ -240,7 +241,7 @@ export class Brain {
     const n = this.needs, t = this.personality.traits;
     if (source === 'friend') {
       // An invitation from the other dog: up to her mood and how social she is.
-      const keen = n.energy > 0.2 && this.rng() < 0.35 + t.sociability * 0.4 + n.social * 0.3;
+      const keen = n.energy > 0.2 && this.rng() < 0.15 + t.sociability * 0.6 + n.social * 0.25;
       if (!keen) return { accept: false, line: n.energy <= 0.2 ? 'Too tired to play…' : 'Not now, buddy' };
     } else if (source !== 'self') {
       if (ENERGETIC.has(intent.kind) && n.energy < 0.12 && this.rng() > t.obedience * 0.3) {

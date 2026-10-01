@@ -9,10 +9,11 @@ import type { Emotion, Habit, Intent, Trick } from './types.js';
 interface Msg { role: 'user' | 'assistant'; text: string }
 interface ChatResponse { replies?: unknown; actions?: unknown; feelings?: unknown; habits?: unknown; error?: unknown }
 
-const EMOTIONS: readonly Emotion[] = ['loved', 'excited', 'calm', 'curious', 'sad', 'hot'];
+const EMOTIONS: readonly Emotion[] = ['loved', 'excited', 'calm', 'curious', 'sad', 'hot', 'scared'];
 const FEELING_NOTE: Record<Emotion, (n: string) => string> = {
   loved: (n) => `${n} feels loved`, excited: (n) => `${n} is all wound up`, calm: (n) => `${n} settles down`,
   curious: (n) => `${n}’s ears perk up`, sad: (n) => `${n}’s ears droop`, hot: (n) => `${n} feels the heat`,
+  scared: (n) => `${n} got spooked!`,
 };
 const HABIT_NOTE: Record<Habit, string> = {
   swimMore: 'swims more often', swimLess: 'swims less often',
@@ -54,6 +55,8 @@ export class Chat {
   private history: Msg[] = [];
   private queue: Array<[Dog, Intent]> = [];
   private sending = false;
+  /** Who's chatting: 'gabby', 'shannah' or 'guest'. */
+  human = 'guest';
 
   constructor(
     private readonly game: Game,
@@ -68,6 +71,21 @@ export class Chat {
       e.preventDefault();
       void this.send(input.value);
     });
+  }
+
+  /** Someone else is at the keyboard: each dog reacts in their own way. */
+  humanChanged(human: string, label: string): void {
+    this.human = human;
+    this.bubble('note', human === 'guest' ? 'A guest is here' : `${label} is here`);
+    for (const d of this.game.dogs) {
+      if (d.profile.owner.toLowerCase() === human) {
+        d.sense('loved');
+        d.request({ kind: 'seekAttention' }, 'self');
+        d.say(`${d.profile.owner}!!`);
+      } else if (human === 'guest' && d.profile.whenScared === 'flee') {
+        d.sense('scared');
+      }
+    }
   }
 
   /** The set of dogs in the yard changed. */
@@ -117,6 +135,7 @@ export class Chat {
         body: JSON.stringify({
           messages: this.history.slice(-20),
           dogs: this.game.dogs.map((d) => ({ id: d.id, state: d.snapshot() })),
+          human: this.human,
         }),
       });
       const data = (await res.json().catch(() => ({}))) as ChatResponse;

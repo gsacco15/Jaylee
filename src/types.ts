@@ -89,7 +89,7 @@ export type WorldEvent =
   | { type: 'feeling'; emotion: Emotion };
 
 /** How something said in chat made her feel. Shifts her needs. */
-export type Emotion = 'loved' | 'excited' | 'calm' | 'curious' | 'sad' | 'hot';
+export type Emotion = 'loved' | 'excited' | 'calm' | 'curious' | 'sad' | 'hot' | 'scared';
 
 /** Lasting habit changes her human can ask for in chat. Shifts her traits. */
 export type Habit =

@@ -22,7 +22,7 @@
     </div>
     <div class="dog-switch" role="radiogroup" aria-label="Which dogs are in the yard">
       <button type="button" role="radio" data-mode="jaylee" aria-checked="true">Jaylee</button>
-      <button type="button" role="radio" data-mode="hegla" aria-checked="false">Hegla</button>
+      <button type="button" role="radio" data-mode="helga" aria-checked="false">Helga</button>
       <button type="button" role="radio" data-mode="both" aria-checked="false">Both</button>
     </div>
     <div class="meters" aria-label="How the selected dog is feeling">
@@ -69,6 +69,14 @@
           <h2 id="chat-title">Talk to Jaylee</h2>
           <p>They'll answer, and might do what you ask</p>
         </div>
+        <label class="who">
+          <span>I'm</span>
+          <select id="human" aria-label="Who's chatting">
+            <option value="gabby">Gabby</option>
+            <option value="shannah">Shannah</option>
+            <option value="guest">a guest</option>
+          </select>
+        </label>
       </header>
       <ol class="chat-log" id="chat-log" aria-live="polite"></ol>
       <form class="chat-form" id="chat-form" autocomplete="off">

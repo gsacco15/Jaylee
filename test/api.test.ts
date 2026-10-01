@@ -10,9 +10,9 @@ const replies = [
     { type: 'tool_use', id: 'tu_4', name: 'feel', input: { dog: 'jaylee', emotion: 'evil' } }], stop_reason: 'tool_use' },
   { content: [{ type: 'text', text: '*splash* Come swim with me!' }], stop_reason: 'end_turn' },
   // Both dogs in the yard
-  { content: [{ type: 'text', text: 'Jaylee: Race you!\nHegla: You\'re on!' }, { type: 'tool_use', id: 'tu_5', name: 'play_with_friend', input: { dog: 'hegla' } },
+  { content: [{ type: 'text', text: 'Jaylee: Race you!\nHelga: You\'re on!' }, { type: 'tool_use', id: 'tu_5', name: 'play_with_friend', input: { dog: 'helga' } },
     { type: 'tool_use', id: 'tu_6', name: 'go_swim', input: { dog: 'rex' } }], stop_reason: 'tool_use' },
-  { content: [{ type: 'text', text: 'Hegla: Tag!' }], stop_reason: 'end_turn' },
+  { content: [{ type: 'text', text: 'Helga: Tag!' }], stop_reason: 'end_turn' },
 ];
 let POST: (r: Request) => Promise<Response>;
 
@@ -58,18 +58,18 @@ test('chat returns her reply and the actions she chose', async () => {
 test('both dogs: separate voices, friend tools, unknown dogs ignored', async () => {
   const res = await POST(req({
     messages: [{ role: 'user', text: 'who wants to play?' }],
-    dogs: [{ id: 'jaylee', state: {} }, { id: 'hegla', state: {} }, { id: 'rex', state: {} }],
+    dogs: [{ id: 'jaylee', state: {} }, { id: 'helga', state: {} }, { id: 'rex', state: {} }],
   }));
   const data = await res.json();
   assert.deepEqual(data.replies, [
     { dog: 'jaylee', text: 'Race you!' },
-    { dog: 'hegla', text: "You're on! Tag!" },
+    { dog: 'helga', text: "You're on! Tag!" },
   ]);
-  assert.deepEqual(data.actions, [{ dog: 'hegla', intent: { kind: 'playWith' } }]);
+  assert.deepEqual(data.actions, [{ dog: 'helga', intent: { kind: 'playWith' } }]);
   const req2 = calls[2];
-  assert.match(req2.system, /You voice Jaylee and Hegla/);
+  assert.match(req2.system, /You voice Jaylee and Helga/);
   assert.ok(req2.tools.some((t: any) => t.name === 'play_with_friend'));
-  assert.deepEqual(req2.tools[0].input_schema.properties.dog.enum, ['jaylee', 'hegla']);
+  assert.deepEqual(req2.tools[0].input_schema.properties.dog.enum, ['jaylee', 'helga']);
   assert.ok(!calls[0].tools.some((t: any) => t.name === 'play_with_friend'), 'no friend tools when alone');
 });
 

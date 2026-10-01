@@ -1,7 +1,8 @@
-const EMOTIONS = ['loved', 'excited', 'calm', 'curious', 'sad', 'hot'];
+const EMOTIONS = ['loved', 'excited', 'calm', 'curious', 'sad', 'hot', 'scared'];
 const FEELING_NOTE = {
     loved: (n) => `${n} feels loved`, excited: (n) => `${n} is all wound up`, calm: (n) => `${n} settles down`,
     curious: (n) => `${n}’s ears perk up`, sad: (n) => `${n}’s ears droop`, hot: (n) => `${n} feels the heat`,
+    scared: (n) => `${n} got spooked!`,
 };
 const HABIT_NOTE = {
     swimMore: 'swims more often', swimLess: 'swims less often',
@@ -49,6 +50,8 @@ export class Chat {
     history = [];
     queue = [];
     sending = false;
+    /** Who's chatting: 'gabby', 'shannah' or 'guest'. */
+    human = 'guest';
     constructor(game, log, form, input, 
     /** Called after chat changes a dog's habits (to save them). */
     onHabit = () => { }, endpoint = '/api/chat') {
@@ -62,6 +65,21 @@ export class Chat {
             e.preventDefault();
             void this.send(input.value);
         });
+    }
+    /** Someone else is at the keyboard: each dog reacts in their own way. */
+    humanChanged(human, label) {
+        this.human = human;
+        this.bubble('note', human === 'guest' ? 'A guest is here' : `${label} is here`);
+        for (const d of this.game.dogs) {
+            if (d.profile.owner.toLowerCase() === human) {
+                d.sense('loved');
+                d.request({ kind: 'seekAttention' }, 'self');
+                d.say(`${d.profile.owner}!!`);
+            }
+            else if (human === 'guest' && d.profile.whenScared === 'flee') {
+                d.sense('scared');
+            }
+        }
     }
     /** The set of dogs in the yard changed. */
     modeChanged(initial = false) {
@@ -110,6 +128,7 @@ export class Chat {
                 body: JSON.stringify({
                     messages: this.history.slice(-20),
                     dogs: this.game.dogs.map((d) => ({ id: d.id, state: d.snapshot() })),
+                    human: this.human,
                 }),
             });
             const data = (await res.json().catch(() => ({})));

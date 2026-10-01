@@ -67,29 +67,29 @@ export interface SpriteSet {
 export const JAYLEE_SPRITES: SpriteSet = { sheets: SHEETS, rows: ROWS };
 
 /**
- * Hegla: assets/hegla-sprites.webp, same 8 × 11 layout as Jaylee's main sheet.
- * No swim sheet yet, so in the pool Hegla paddles with the run rows (cut at the waterline).
+ * Helga: assets/helga-sprites.webp, same 8 × 11 layout as Jaylee's main sheet.
+ * No swim sheet yet, so in the pool Helga paddles with the run rows (cut at the waterline).
  */
-const heglaMain: SheetInfo = { src: 'assets/hegla-sprites.webp', cellW: 1343 / 8, cellH: 2000 / 11 };
-const hegla = (row: number, frames: number, feet: number, directional = false, mouth: readonly [number, number] = [28, 96]): RowInfo =>
+const helgaMain: SheetInfo = { src: 'assets/helga-sprites.webp', cellW: 1343 / 8, cellH: 2000 / 11 };
+const helga = (row: number, frames: number, feet: number, directional = false, mouth: readonly [number, number] = [28, 96]): RowInfo =>
   ({ sheet: 'main', row, frames, feet, directional, scale: 1, sink: 46, mouth });
 
-export const HEGLA_SPRITES: SpriteSet = {
-  sheets: { main: heglaMain, swim: heglaMain },
+export const HELGA_SPRITES: SpriteSet = {
+  sheets: { main: helgaMain, swim: helgaMain },
   rows: {
-    sit:     hegla(0, 6, 173),
-    runR:    hegla(1, 8, 354, true, [42, 66]),
-    runL:    hegla(2, 8, 536, true, [42, 66]),
-    wave:    hegla(3, 4, 718),
-    hop:     hegla(4, 5, 904),
-    sniff:   hegla(5, 8, 1081),
-    curious: hegla(6, 6, 1263),
-    beg:     hegla(7, 6, 1445),
-    wink:    hegla(8, 6, 1627),
-    lookR:   hegla(9, 8, 1810),
-    lookL:   hegla(10, 8, 1992),
-    swimR:   { ...hegla(1, 8, 354, true, [42, 66]), sink: 50 },
-    swimL:   { ...hegla(2, 8, 536, true, [42, 66]), sink: 50 },
+    sit:     helga(0, 6, 173),
+    runR:    helga(1, 8, 354, true, [42, 66]),
+    runL:    helga(2, 8, 536, true, [42, 66]),
+    wave:    helga(3, 4, 718),
+    hop:     helga(4, 5, 904),
+    sniff:   helga(5, 8, 1081),
+    curious: helga(6, 6, 1263),
+    beg:     helga(7, 6, 1445),
+    wink:    helga(8, 6, 1627),
+    lookR:   helga(9, 8, 1810),
+    lookL:   helga(10, 8, 1992),
+    swimR:   { ...helga(1, 8, 354, true, [42, 66]), sink: 50 },
+    swimL:   { ...helga(2, 8, 536, true, [42, 66]), sink: 50 },
   },
 };
 
