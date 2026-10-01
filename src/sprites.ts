@@ -1,41 +1,59 @@
 /**
- * Sprite sheet map — assets/jaylee-sprites.webp, 1343×2000 px,
- * 8 columns × 11 rows of equal cells. Artwork is drawn untouched.
+ * Sprite sheet map. Artwork is drawn straight from the sheets, never edited.
+ * - main: assets/jaylee-sprites.webp, 1343×2000 px, 8 × 11 cells
+ * - swim: assets/jaylee-swim.webp, 2000×460 px, 8 × 2 cells (paddling, → and ←)
  */
 
-export const SHEET_W = 1343;
-export const SHEET_H = 2000;
-export const CELL_W = SHEET_W / 8;
-export const CELL_H = SHEET_H / 11;
-/** Sheet-px height of her sitting pose, used to size her on screen. */
+export type SheetId = 'main' | 'swim';
+
+export const SHEETS: Readonly<Record<SheetId, { src: string; cellW: number; cellH: number }>> = {
+  main: { src: 'assets/jaylee-sprites.webp', cellW: 1343 / 8, cellH: 2000 / 11 },
+  swim: { src: 'assets/jaylee-swim.webp', cellW: 250, cellH: 230 },
+};
+
+/** Main-sheet px height of her sitting pose, used to size her on screen. */
 export const SIT_H = 170;
 
 export type RowKey =
   | 'sit' | 'runR' | 'runL' | 'wave' | 'hop' | 'sniff'
-  | 'curious' | 'beg' | 'wink' | 'lookR' | 'lookL';
+  | 'curious' | 'beg' | 'wink' | 'lookR' | 'lookL'
+  | 'swimR' | 'swimL';
 
-interface RowInfo {
-  /** Row index in the sheet. */
+export interface RowInfo {
+  readonly sheet: SheetId;
+  /** Row index in its sheet. */
   readonly row: number;
   readonly frames: number;
   /** Sheet y of the lowest paw in this row (plants her feet on the ground). */
   readonly feet: number;
   /** Rows already drawn facing a direction must not be mirrored. */
   readonly directional: boolean;
+  /** Draw scale relative to the main sheet, so she stays the same size. */
+  readonly scale: number;
+  /** Sheet px of her body below the waterline when she's in the pool. */
+  readonly sink: number;
+  /** Muzzle position (sheet px from paws-centre, facing right), for carrying the ball. */
+  readonly mouth: readonly [number, number];
 }
 
+const main = (row: number, frames: number, feet: number, directional = false, mouth: readonly [number, number] = [34, 112]): RowInfo =>
+  ({ sheet: 'main', row, frames, feet, directional, scale: 1, sink: 46, mouth });
+
 export const ROWS: Readonly<Record<RowKey, RowInfo>> = {
-  sit:     { row: 0,  frames: 6, feet: 176,  directional: false }, // idle sit, blinks
-  runR:    { row: 1,  frames: 8, feet: 330,  directional: true },  // gallop →
-  runL:    { row: 2,  frames: 8, feet: 512,  directional: true },  // gallop ←
-  wave:    { row: 3,  frames: 4, feet: 722,  directional: false }, // paw up hello
-  hop:     { row: 4,  frames: 5, feet: 904,  directional: false }, // crouch, leap, land, stand
-  sniff:   { row: 5,  frames: 8, feet: 1085, directional: false }, // nose to ground and back
-  curious: { row: 6,  frames: 6, feet: 1268, directional: false }, // head tilt, paw lift
-  beg:     { row: 7,  frames: 6, feet: 1450, directional: false }, // tongue out, paw swipes
-  wink:    { row: 8,  frames: 6, feet: 1631, directional: false }, // tilt and wink
-  lookR:   { row: 9,  frames: 8, feet: 1812, directional: false }, // up → right → down
-  lookL:   { row: 10, frames: 8, feet: 1994, directional: false }, // down → left → up
+  sit:     main(0, 6, 176),               // idle sit, blinks
+  runR:    main(1, 8, 330, true, [34, 72]), // gallop →
+  runL:    main(2, 8, 512, true, [34, 72]), // gallop ←
+  wave:    main(3, 4, 722),               // paw up hello
+  hop:     main(4, 5, 904),               // crouch, leap, land, stand
+  sniff:   main(5, 8, 1085),              // nose to ground and back
+  curious: main(6, 6, 1268),              // head tilt, paw lift
+  beg:     main(7, 6, 1450),              // tongue out, paw swipes
+  wink:    main(8, 6, 1631),              // tilt and wink
+  lookR:   main(9, 8, 1812),              // up → right → down
+  lookL:   main(10, 8, 1994),             // down → left → up
+  // Paddling, from the swim sheet
+  swimR:   { sheet: 'swim', row: 0, frames: 8, feet: 180, directional: true, scale: 0.66, sink: 62, mouth: [100, 85] },
+  swimL:   { sheet: 'swim', row: 1, frames: 8, feet: 410, directional: true, scale: 0.66, sink: 62, mouth: [100, 85] },
 };
 
 export interface Frame {
@@ -59,10 +77,10 @@ export const ANIMS: Readonly<Record<AnimName, () => Frame[]>> = {
   idle: () => [{ key: 'sit', col: 0, dur: 1.4 + Math.random() * 2.2 }, ...seq('sit', [1, 2, 3, 4, 5], 0.16)],
   runR: () => seq('runR', run8, 1 / 13),
   runL: () => seq('runL', run8, 1 / 13),
-  swimR: () => seq('runR', run8, 1 / 7),
-  swimL: () => seq('runL', run8, 1 / 7),
-  treadR: () => seq('runR', [1, 2, 3, 2], 0.22),
-  treadL: () => seq('runL', [1, 2, 3, 2], 0.22),
+  swimR: () => seq('swimR', run8, 1 / 9),
+  swimL: () => seq('swimL', run8, 1 / 9),
+  treadR: () => seq('swimR', run8, 1 / 5),
+  treadL: () => seq('swimL', run8, 1 / 5),
   wave: () => seq('wave', [0, 1, 2, 2, 1, 2, 2, 1, 3], [0.2, 0.18, 0.3, 0.2, 0.16, 0.3, 0.3, 0.18, 0.4]),
   hop: () => seq('hop', [0, 1, 2, 3, 4], [0.18, 0.12, 0.18, 0.12, 0.3]),
   sniff: () => seq('sniff', [0, 1, 2, 3, 4, 4, 3, 4, 4, 5, 6, 7], [0.2, 0.14, 0.14, 0.14, 0.4, 0.2, 0.2, 0.2, 0.4, 0.14, 0.14, 0.4]),

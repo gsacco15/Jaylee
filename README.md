@@ -33,7 +33,7 @@ Without the key, the playground still works fully. Only the chat answers "not se
 | `src/brain.ts` | Needs + personality. Scores every option (utility AI), picks what to do and decides whether to accept requests |
 | `src/game.ts` | Her body: turns an intent into steps (run, swim, jump in or out, tricks), plus the ball and treats |
 | `src/world.ts` | Yard and pool geometry, route planning around and into the pool |
-| `src/sprites.ts` | Sprite-sheet map and animation recipes (kept behind the scenes) |
+| `src/sprites.ts` | Sprite-sheet map (main + swim sheets) and animation recipes (kept behind the scenes) |
 | `src/render.ts` | Canvas drawing |
 | `src/main.ts` | Page UI and the `window.jaylee` API |
 
@@ -81,5 +81,9 @@ The artwork is drawn straight from the sheet and is never edited.
 | 10 | Look right | 8 | Looks up, turns right, looks down |
 | 11 | Look left | 8 | Looks down, turns left, looks up (continues from row 10) |
 
-Swimming is built from the run rows: they play at a slower pace, and her body is cut off at the waterline with ripples around her.
+### Swim sheet
+
+`public/assets/jaylee-swim.webp` is 2000×460 px: 8 columns × 2 rows of 250×230 cells (row 1 paddles right, row 2 paddles left). It was cut out of the supplied black-background image (black that touches the edges was made transparent and the edge fringe cleaned up), and the frames were not otherwise changed.
+
+When she swims, her head and back are drawn above the waterline. Her paddling legs show faintly through the water, and ripples spread around her.
 Sitting tricks are mirrored when she faces left.

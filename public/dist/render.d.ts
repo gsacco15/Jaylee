@@ -1,9 +1,11 @@
+/** Canvas renderer for the yard, pool, Jaylee, toys and effects. */
+import { type SheetId } from './sprites.js';
 import type { Game } from './game.js';
 import type { Vec } from './types.js';
 export declare class Renderer {
     private readonly canvas;
     private readonly game;
-    private readonly sprite;
+    private readonly sprites;
     private readonly ctx;
     private readonly bg;
     private dpr;
@@ -17,7 +19,7 @@ export declare class Renderer {
         w: number;
         h: number;
     } | null;
-    constructor(canvas: HTMLCanvasElement, game: Game, sprite: HTMLImageElement);
+    constructor(canvas: HTMLCanvasElement, game: Game, sprites: Readonly<Record<SheetId, HTMLImageElement>>);
     private get W();
     private get H();
     private get HZ();
@@ -33,8 +35,6 @@ export declare class Renderer {
     private poolPath;
     private drawPool;
     private shadow;
-    /** How many sheet px of her body are below the waterline right now. */
-    private sink;
     private drawDog;
     private ballAt;
     private drawBall;

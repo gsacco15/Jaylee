@@ -1,6 +1,7 @@
 /** Boot: wires the game, renderer, page UI and the public `window.jaylee` API. */
 import { Game, type GameListener } from './game.js';
 import { Renderer } from './render.js';
+import { SHEETS } from './sprites.js';
 import { Chat } from './chat.js';
 import type { Option } from './brain.js';
 import type { Decision, Intent, Snapshot, Trick } from './types.js';
@@ -31,9 +32,9 @@ const $ = <T extends HTMLElement>(sel: string): T => {
 const canvas = $<HTMLCanvasElement>('#stage');
 const statusEl = $('#status');
 const game = new Game();
-const sprite = new Image();
-sprite.src = 'assets/jaylee-sprites.webp';
-const renderer = new Renderer(canvas, game, sprite);
+const load = (src: string): HTMLImageElement => { const img = new Image(); img.src = src; return img; };
+const sprites = { main: load(SHEETS.main.src), swim: load(SHEETS.swim.src) };
+const renderer = new Renderer(canvas, game, sprites);
 
 // ---------- Speech ----------
 game.on((e) => {
@@ -115,7 +116,7 @@ let layoutKey = '';
 function resize(): void {
   renderer.resize();
   const key = JSON.stringify(game.yard.pool);
-  if (key !== layoutKey) { game.relayout(); layoutKey = key; }
+  if (key !== layoutKey) { game.relayout(layoutKey !== ''); layoutKey = key; }
 }
 window.addEventListener('resize', resize);
 
@@ -136,5 +137,4 @@ function start(): void {
   updateUI();
   requestAnimationFrame((t) => { last = t; frame(t); });
 }
-if (sprite.complete && sprite.naturalWidth) start();
-else sprite.addEventListener('load', start, { once: true });
+Promise.all(Object.values(sprites).map((img) => img.decode())).then(start, start);

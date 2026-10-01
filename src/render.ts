@@ -1,5 +1,5 @@
 /** Canvas renderer for the yard, pool, Jaylee, toys and effects. */
-import { CELL_H, CELL_W, ROWS } from './sprites.js';
+import { ROWS, SHEETS, type SheetId } from './sprites.js';
 import type { Game } from './game.js';
 import type { Vec } from './types.js';
 
@@ -22,7 +22,7 @@ export class Renderer {
   /** Screen-space box around Jaylee, for tap-to-pet. */
   dogBox: { x: number; y: number; w: number; h: number } | null = null;
 
-  constructor(private readonly canvas: HTMLCanvasElement, private readonly game: Game, private readonly sprite: HTMLImageElement) {
+  constructor(private readonly canvas: HTMLCanvasElement, private readonly game: Game, private readonly sprites: Readonly<Record<SheetId, HTMLImageElement>>) {
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('Canvas 2D not supported');
     this.ctx = ctx;
@@ -215,27 +215,37 @@ export class Renderer {
     c.beginPath(); c.ellipse(p.x, p.y, w * s, w * s * 0.25, 0, 0, Math.PI * 2); c.fill();
   }
 
-  /** How many sheet px of her body are below the waterline right now. */
-  private sink(): number {
-    return 46 * this.game.submerged;
-  }
-
   private drawDog(): void {
     const g = this.game, c = this.ctx;
-    const f = g.anim.frame, row = ROWS[f.key];
-    const p = this.p(g.pos), s = this.s(g.pos.y);
-    const sink = this.sink();
+    const f = g.anim.frame, row = ROWS[f.key], sheet = SHEETS[row.sheet];
+    const p = this.p(g.pos), s = this.s(g.pos.y), rs = s * row.scale;
+    const sink = row.sink * g.submerged * rs; // screen px of her below the waterline
     const bob = sink ? Math.sin(g.time * 3.2) * 2.2 * s : 0;
     if (!sink) this.shadow(g.pos, 62);
 
-    const feet = (row.feet - row.row * CELL_H) * s;
-    c.save();
-    if (sink) { c.beginPath(); c.rect(0, 0, this.W, p.y + bob); c.clip(); }
-    c.translate(p.x, p.y + sink * s + bob);
-    if (!row.directional && g.face < 0) c.scale(-1, 1);
-    c.drawImage(this.sprite, f.col * CELL_W, row.row * CELL_H, CELL_W, CELL_H, (-CELL_W * s) / 2, -feet, CELL_W * s, CELL_H * s);
-    c.restore();
-    this.dogBox = { x: p.x - CELL_W * s * 0.4, y: p.y - feet + CELL_H * s * 0.05, w: CELL_W * s * 0.8, h: feet * 0.95 };
+    const feet = (row.feet - row.row * sheet.cellH) * rs;
+    const w = sheet.cellW * rs, h = sheet.cellH * rs;
+    const draw = (): void => {
+      c.save();
+      c.translate(p.x, p.y + sink + bob);
+      if (!row.directional && g.face < 0) c.scale(-1, 1);
+      c.drawImage(this.sprites[row.sheet], f.col * sheet.cellW, row.row * sheet.cellH, sheet.cellW, sheet.cellH, -w / 2, -feet, w, h);
+      c.restore();
+    };
+    if (sink) {
+      // Below the waterline: faint, so her paddling paws show through the water.
+      c.save();
+      c.beginPath(); c.rect(0, p.y + bob, this.W, this.H); c.clip();
+      c.globalAlpha = 0.32;
+      draw();
+      c.restore();
+      c.save();
+      c.beginPath(); c.rect(0, 0, this.W, p.y + bob); c.clip();
+      draw();
+      c.restore();
+    } else draw();
+    const top = p.y - feet + sink + bob;
+    this.dogBox = { x: p.x - w * 0.4, y: top + h * 0.05, w: w * 0.8, h: Math.max(20, p.y + bob - top) };
 
     if (sink) {
       c.save();
@@ -246,8 +256,8 @@ export class Renderer {
     }
     if (g.ball.state === 'mouth') {
       // Ball held up by her muzzle
-      const dir = row.directional ? (f.key === 'runR' ? 1 : -1) : g.face;
-      this.ballAt({ x: p.x + dir * 34 * s, y: p.y + sink * s - (DIRECTIONAL_MOUTH(f.key) * s) + bob }, s, false);
+      const dir = row.directional ? (f.key.endsWith('R') ? 1 : -1) : g.face;
+      this.ballAt({ x: p.x + dir * row.mouth[0] * rs, y: p.y + sink - row.mouth[1] * rs + bob }, s, false);
     }
   }
 
@@ -346,9 +356,4 @@ export class Renderer {
     items.sort((a, b) => a.y - b.y).forEach((i) => i.draw());
     this.drawFx();
   }
-}
-
-/** Approximate muzzle height (sheet px above her paws) per pose, for carrying the ball. */
-function DIRECTIONAL_MOUTH(key: keyof typeof ROWS): number {
-  return key === 'runR' || key === 'runL' ? 72 : 112;
 }

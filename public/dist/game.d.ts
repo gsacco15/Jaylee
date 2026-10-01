@@ -102,5 +102,5 @@ export declare class Game {
     private stepJump;
     private updateBall;
     /** Keep her somewhere valid after the yard layout changes. */
-    relayout(): void;
+    relayout(dropPlans?: boolean): void;
 }

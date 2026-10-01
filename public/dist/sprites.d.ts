@@ -1,22 +1,32 @@
 /**
- * Sprite sheet map — assets/jaylee-sprites.webp, 1343×2000 px,
- * 8 columns × 11 rows of equal cells. Artwork is drawn untouched.
+ * Sprite sheet map. Artwork is drawn straight from the sheets, never edited.
+ * - main: assets/jaylee-sprites.webp, 1343×2000 px, 8 × 11 cells
+ * - swim: assets/jaylee-swim.webp, 2000×460 px, 8 × 2 cells (paddling, → and ←)
  */
-export declare const SHEET_W = 1343;
-export declare const SHEET_H = 2000;
-export declare const CELL_W: number;
-export declare const CELL_H: number;
-/** Sheet-px height of her sitting pose, used to size her on screen. */
+export type SheetId = 'main' | 'swim';
+export declare const SHEETS: Readonly<Record<SheetId, {
+    src: string;
+    cellW: number;
+    cellH: number;
+}>>;
+/** Main-sheet px height of her sitting pose, used to size her on screen. */
 export declare const SIT_H = 170;
-export type RowKey = 'sit' | 'runR' | 'runL' | 'wave' | 'hop' | 'sniff' | 'curious' | 'beg' | 'wink' | 'lookR' | 'lookL';
-interface RowInfo {
-    /** Row index in the sheet. */
+export type RowKey = 'sit' | 'runR' | 'runL' | 'wave' | 'hop' | 'sniff' | 'curious' | 'beg' | 'wink' | 'lookR' | 'lookL' | 'swimR' | 'swimL';
+export interface RowInfo {
+    readonly sheet: SheetId;
+    /** Row index in its sheet. */
     readonly row: number;
     readonly frames: number;
     /** Sheet y of the lowest paw in this row (plants her feet on the ground). */
     readonly feet: number;
     /** Rows already drawn facing a direction must not be mirrored. */
     readonly directional: boolean;
+    /** Draw scale relative to the main sheet, so she stays the same size. */
+    readonly scale: number;
+    /** Sheet px of her body below the waterline when she's in the pool. */
+    readonly sink: number;
+    /** Muzzle position (sheet px from paws-centre, facing right), for carrying the ball. */
+    readonly mouth: readonly [number, number];
 }
 export declare const ROWS: Readonly<Record<RowKey, RowInfo>>;
 export interface Frame {
@@ -42,4 +52,3 @@ export declare class AnimPlayer {
     tick(dt: number): void;
     get frame(): Frame;
 }
-export {};

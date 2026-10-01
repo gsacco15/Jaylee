@@ -1,6 +1,7 @@
 /** Boot: wires the game, renderer, page UI and the public `window.jaylee` API. */
 import { Game } from './game.js';
 import { Renderer } from './render.js';
+import { SHEETS } from './sprites.js';
 import { Chat } from './chat.js';
 const $ = (sel) => {
     const el = document.querySelector(sel);
@@ -11,9 +12,9 @@ const $ = (sel) => {
 const canvas = $('#stage');
 const statusEl = $('#status');
 const game = new Game();
-const sprite = new Image();
-sprite.src = 'assets/jaylee-sprites.webp';
-const renderer = new Renderer(canvas, game, sprite);
+const load = (src) => { const img = new Image(); img.src = src; return img; };
+const sprites = { main: load(SHEETS.main.src), swim: load(SHEETS.swim.src) };
+const renderer = new Renderer(canvas, game, sprites);
 // ---------- Speech ----------
 game.on((e) => {
     if (e.type === 'say') {
@@ -95,7 +96,7 @@ function resize() {
     renderer.resize();
     const key = JSON.stringify(game.yard.pool);
     if (key !== layoutKey) {
-        game.relayout();
+        game.relayout(layoutKey !== '');
         layoutKey = key;
     }
 }
@@ -119,7 +120,4 @@ function start() {
     updateUI();
     requestAnimationFrame((t) => { last = t; frame(t); });
 }
-if (sprite.complete && sprite.naturalWidth)
-    start();
-else
-    sprite.addEventListener('load', start, { once: true });
+Promise.all(Object.values(sprites).map((img) => img.decode())).then(start, start);

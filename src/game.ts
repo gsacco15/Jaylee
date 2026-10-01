@@ -446,11 +446,12 @@ export class Game {
   }
 
   /** Keep her somewhere valid after the yard layout changes. */
-  relayout(): void {
+  relayout(dropPlans = true): void {
     const y = this.yard;
     if (this.medium === 'water' && !y.inPool(this.pos)) this.pos = y.clampToPool(this.pos);
     if (this.medium === 'land' && y.inPool(this.pos, 0.05)) this.pos = y.edgeCrossing(this.pos).O;
     if (this.ball.state === 'rest' && y.inPool(this.ball.pos, 0.05) && !y.inPool(this.ball.pos)) this.ball.pos = y.edgeCrossing(this.ball.pos).O;
+    if (!dropPlans) return;
     this.cur = null;
     this.queue = [];
     this.pending = null;
