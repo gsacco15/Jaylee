@@ -9,6 +9,11 @@ export interface Rect {
     y0: number;
     y1: number;
 }
+/** Daylight 0..1 and sunset/sunrise warmth 0..1 for a local hour of the day. */
+export declare function daylight(h: number): {
+    light: number;
+    warmth: number;
+};
 /** How much wider the ground looks at depth y (0 = horizon, 1 = front). */
 export declare const perspective: (y: number) => number;
 export declare const clamp: (v: number, a: number, b: number) => number;

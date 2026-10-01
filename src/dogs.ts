@@ -23,6 +23,8 @@ export interface DogProfile {
   readonly standIn?: boolean;
   /** Their person. */
   readonly owner: string;
+  /** Pulling power in tug-of-war, 0..1. */
+  readonly strength: number;
   /** What they do when spooked: run off and hide, or run to their people. */
   readonly whenScared: 'flee' | 'comfort';
   readonly lines: {
@@ -31,6 +33,8 @@ export interface DogProfile {
     readonly hello: string;
     readonly noPlay: readonly string[];
     readonly scared: readonly string[];
+    readonly tugWin: readonly string[];
+    readonly tugLose: readonly string[];
   };
 }
 
@@ -47,6 +51,7 @@ export const DOGS: Readonly<Record<DogId, DogProfile>> = {
     },
     sprites: JAYLEE_SPRITES,
     owner: 'Gabby',
+    strength: 1, // doesn't know her own strength
     whenScared: 'comfort',
     lines: {
       pet: ['I love that!', 'Belly rubs please', 'More! Don’t stop!', 'Cuddle me like warm laundry'],
@@ -54,6 +59,8 @@ export const DOGS: Readonly<Record<DogId, DogProfile>> = {
       hello: 'Hi! I’m Jaylee',
       noPlay: ['Ugh, other dogs…', 'Not now, Helga', 'Find your own toy'],
       scared: ['Eep! Save me!', 'What was THAT?!', 'Hold me…'],
+      tugWin: ['Oops… did I do that?', 'MINE! *proud wiggle*', 'Too strong? Didn’t notice!'],
+      tugLose: ['Hey! Again! AGAIN!', 'Rematch!!'],
     },
   },
   helga: {
@@ -68,6 +75,7 @@ export const DOGS: Readonly<Record<DogId, DogProfile>> = {
     },
     sprites: HELGA_SPRITES,
     owner: 'Shannah',
+    strength: 0.45,
     whenScared: 'flee',
     lines: {
       pet: ['Ooh, hi! Scritches!', 'Hehe, that tickles', 'I like you'],
@@ -75,6 +83,8 @@ export const DOGS: Readonly<Record<DogId, DogProfile>> = {
       hello: 'Hi… I’m Helga',
       noPlay: ['Maybe later…', 'Too much right now'],
       scared: ['!!!', 'Nope nope nope', 'Eek!'],
+      tugWin: ['I won?! I WON!', 'Look! I got it!'],
+      tugLose: ['Whoa! *wide eyes*', 'You’re so strong…'],
     },
   },
 };

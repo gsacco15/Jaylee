@@ -29,7 +29,10 @@ export type Intent =
   // With a friend in the yard:
   | { kind: 'playWith' }    // play chase with the other dog
   | { kind: 'greet' }       // trot over and sniff hello
-  | { kind: 'joinFriend' }; // go to wherever the other dog is (even the pool)
+  | { kind: 'joinFriend' }  // go to wherever the other dog is (even the pool)
+  | { kind: 'tugFriend' }   // tug-of-war with the other dog
+  | { kind: 'tug' }         // tug-of-war with the human
+  | { kind: 'sleep' };      // curl up for a nap
 
 export type IntentKind = Intent['kind'];
 
@@ -37,7 +40,7 @@ export type IntentKind = Intent['kind'];
 export type Source = 'player' | 'self' | 'chat' | 'friend';
 
 /** What her body is physically doing right now (drives need changes). */
-export type Activity = 'idle' | 'running' | 'swimming' | 'paddling' | 'trick' | 'eating';
+export type Activity = 'idle' | 'running' | 'swimming' | 'paddling' | 'trick' | 'eating' | 'tugging' | 'sleeping';
 
 /**
  * Drives in 0..1. Higher means a stronger urge,
@@ -86,6 +89,7 @@ export type WorldEvent =
   | { type: 'leftWater' }
   | { type: 'talkedTo' }
   | { type: 'playedWithFriend' }
+  | { type: 'tugged'; won: boolean }
   | { type: 'feeling'; emotion: Emotion };
 
 /** How something said in chat made her feel. Shifts her needs. */
@@ -114,7 +118,11 @@ export interface Snapshot {
   traits: Readonly<Traits>;
   /** The other dog, when both are in the yard. */
   friend: { name: string; medium: Medium; activity: Activity; distance: number } | null;
+  timeOfDay: TimeOfDay;
+  rope: 'lawn' | 'tug' | 'carried';
 }
+
+export type TimeOfDay = 'morning' | 'day' | 'evening' | 'night';
 
 export interface Stats {
   fetches: number;

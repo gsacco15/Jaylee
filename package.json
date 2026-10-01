@@ -3,14 +3,16 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc -p .",
+    "build": "tsc -p . && node scripts/pages.mjs",
     "watch": "tsc -p . --watch",
     "typecheck": "tsc -p . --noEmit && tsc -p tsconfig.api.json",
     "test": "npm run build && npm run typecheck && node --test test/*.test.js && node --experimental-strip-types --no-warnings --test test/*.test.ts",
     "serve": "python3 -m http.server 8080 -d public",
-    "dev": "vercel dev"
+    "dev": "vercel dev",
+    "brand": "node scripts/brand.mjs"
   },
   "devDependencies": {
+    "@fontsource/outfit": "^5.3.0",
     "@types/node": "^22.20.4",
     "typescript": "^5.9.0"
   },

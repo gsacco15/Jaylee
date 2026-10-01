@@ -6,6 +6,13 @@ import type { Medium, Vec } from './types.js';
 
 export interface Rect { x0: number; x1: number; y0: number; y1: number }
 
+/** Daylight 0..1 and sunset/sunrise warmth 0..1 for a local hour of the day. */
+export function daylight(h: number): { light: number; warmth: number } {
+  const light = h < 5 ? 0 : h < 7 ? (h - 5) / 2 : h < 18.5 ? 1 : h < 20.5 ? 1 - (h - 18.5) / 2 : 0;
+  const warmth = Math.max(0, 1 - Math.abs(h - 19.3) / 1.4, 1 - Math.abs(h - 6.3) / 1.1);
+  return { light, warmth };
+}
+
 /** How much wider the ground looks at depth y (0 = horizon, 1 = front). */
 export const perspective = (y: number): number => 0.82 + 0.26 * y;
 

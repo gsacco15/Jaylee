@@ -25,6 +25,24 @@ Without the key, the playground still works fully. Only the chat answers "not se
 | `api/chat.ts` | Vercel function: Claude plays Jaylee and picks actions through tools |
 | `src/chat.ts` | Chat panel; validates the actions that come back and queues them for the game |
 
+## Pages, share previews and home screen
+
+| Link | Opens | Share preview | Home-screen app |
+|---|---|---|---|
+| `/` | Both dogs (remembers your last choice) | `brand/og-both.png` | "Jaylee & Helga" |
+| `/jaylee` | Just Jaylee | `brand/og-jaylee.png` | "Jaylee" |
+| `/helga` | Just Helga | `brand/og-helga.png` | "Helga" |
+
+- The pages are generated from `src/page.html` by `scripts/pages.mjs` during `npm run build`. Edit the template, not `public/*.html`.
+- On Vercel, preview images get absolute URLs from the production domain automatically. Elsewhere, set `SITE_URL`.
+- **iPhone:** open the link in Safari, tap Share, then **Add to Home Screen**. Each link installs as its own app, with its own icon and name.
+- `npm run brand` re-creates the preview cards and icons from the real app (needs Playwright).
+
+## Day & night, rope toy
+
+- **Day & night** follow your local time, with a sunset glow, then stars, a moon, fireflies and pool lights. The toggle in the yard cycles Auto / Day / Night. At night the dogs get sleepy and take naps with "Zzz".
+- **Tug-of-war:** a rope toy lives on the lawn. **Tug rope** makes the selected dog play tug with you. **Tug-of-war** (both dogs) has them tug each other. Strength decides who usually wins: Jaylee is strong and doesn't know it, so she usually yanks it away (with a little screen shake).
+
 ## Dogs
 
 The switcher in the header picks **Jaylee**, **Helga** or **Both** (remembered in the browser). In Both mode:

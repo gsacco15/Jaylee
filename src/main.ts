@@ -144,12 +144,30 @@ document.querySelectorAll<HTMLButtonElement>('[data-act]').forEach((b) => {
     else if (act === 'zoomies') dog.request({ kind: 'zoomies' });
     else if (act === 'play') dog.request({ kind: 'playWith' });
     else if (act === 'greet') dog.request({ kind: 'greet' });
+    else if (act === 'tug') dog.request({ kind: 'tug' });
+    else if (act === 'tugFriend') dog.request({ kind: 'tugFriend' });
+    else if (act === 'sleep') dog.request({ kind: 'sleep' });
     else if ((TRICKS as readonly string[]).includes(act)) dog.request({ kind: 'trick', trick: act as Trick });
   });
 });
 $<HTMLInputElement>('#roam').addEventListener('change', (e) => {
   game.autonomy = (e.target as HTMLInputElement).checked;
 });
+
+// ---------- Day / night ----------
+const timeBtn = $<HTMLButtonElement>('#time');
+const TIME_MODES = ['auto', 'day', 'night'] as const;
+const TIME_LABEL = { auto: 'Auto', day: 'Day', night: 'Night' } as const;
+function setTimeMode(mode: (typeof TIME_MODES)[number]): void {
+  game.timeMode = mode;
+  timeBtn.dataset.mode = mode;
+  $('#time-label').textContent = TIME_LABEL[mode];
+  timeBtn.setAttribute('aria-label', mode === 'auto' ? 'Time of day: follows your clock' : `Time of day: always ${mode}`);
+  store.set('playground:time', mode);
+}
+const savedTime = store.get('playground:time');
+setTimeMode((TIME_MODES as readonly string[]).includes(savedTime ?? '') ? (savedTime as (typeof TIME_MODES)[number]) : 'auto');
+timeBtn.addEventListener('click', () => setTimeMode(TIME_MODES[(TIME_MODES.indexOf(game.timeMode) + 1) % 3]!));
 
 // ---------- Chat ----------
 const chat = new Chat(game, $('#chat-log'), $<HTMLFormElement>('#chat-form'), $<HTMLInputElement>('#chat-input'), saveTraits);
@@ -194,8 +212,11 @@ function frame(now: number): void {
 }
 
 function start(): void {
+  // /jaylee and /helga always open on that dog; the main page remembers your last choice (both dogs by default).
+  const page = document.documentElement.dataset.startMode;
   const saved = store.get('playground:mode');
-  if (saved === 'both' || (DOG_IDS as readonly string[]).includes(saved ?? '')) game.setMode(saved as Mode);
+  if ((DOG_IDS as readonly string[]).includes(page ?? '')) game.setMode(page as Mode);
+  else game.setMode(saved === 'both' || (DOG_IDS as readonly string[]).includes(saved ?? '') ? (saved as Mode) : 'both');
   resize();
   syncChrome();
   chat.modeChanged(true);

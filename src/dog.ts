@@ -16,7 +16,9 @@ type Step =
   | { type: 'anim'; anim: AnimName; activity?: Activity }
   | { type: 'idle'; secs: number }
   | { type: 'wait'; until: () => boolean; timeout: number }
-  | { type: 'call'; fn: () => void };
+  | { type: 'call'; fn: () => void }
+  | { type: 'tug' }
+  | { type: 'sleep'; secs: number };
 
 interface Running { step: Step; t: number; from: Vec; dur: number }
 
@@ -32,15 +34,18 @@ export class Dog {
   wet = 0;
   line: string;
 
-  private queue: Step[] = [];
-  private cur: Running | null = null;
-  private pending: Intent | null = null;
-  private current: Intent | null = null;
+  queue: Step[] = [];
+  cur: Running | null = null;
+  pending: Intent | null = null;
+  current: Intent | null = null;
   private idleFor = 0;
   private nextThink = 2;
   private waterSince = 0;
   private rippleT = 0;
   private dripT = 0;
+  private zzzT = 0;
+  /** Who asked for the current plan; human asks carry more weight with the other dog. */
+  private askedBy: Source = 'self';
   /** Set when a thrown ball lands, so she chases it once she's free. */
   wantsBall = false;
 
@@ -76,6 +81,8 @@ export class Dog {
     if (s.type === 'move' || s.type === 'chase') return this.medium === 'water' ? 'swimming' : 'running';
     if (s.type === 'jump') return 'running';
     if (s.type === 'anim') return s.activity ?? 'trick';
+    if (s.type === 'tug') return 'tugging';
+    if (s.type === 'sleep') return 'sleeping';
     return this.medium === 'water' ? 'paddling' : 'idle';
   }
 
@@ -88,6 +95,8 @@ export class Dog {
       ball: this.g.ballWhere(),
       timeInWater: this.medium === 'water' ? this.g.time - this.waterSince : 0,
       friend: f ? { medium: f.medium, distance: dist(f.pos, this.pos), busy: f.busy } : null,
+      rope: this.g.rope.state,
+      night: this.g.night,
     };
   }
 
@@ -108,6 +117,8 @@ export class Dog {
       stats: { ...this.stats },
       traits: { ...this.brain.personality.traits },
       friend: f ? { name: f.name, medium: f.medium, activity: f.activity, distance: dist(f.pos, this.pos) } : null,
+      timeOfDay: this.g.timeOfDay,
+      rope: this.g.rope.state,
     };
   }
 
@@ -139,6 +150,7 @@ export class Dog {
     this.idleFor = 0;
     this.nextThink = rand(3, 7);
     if (!(intent.kind === 'fetch')) this.g.dropBall(this);
+    this.askedBy = source;
     if (this.jumping) { this.pending = intent; return decision; }
     this.start(intent);
     return decision;
@@ -194,7 +206,19 @@ export class Dog {
     this.queue = steps;
   }
 
+  get sleeping(): boolean { return this.cur?.step.type === 'sleep'; }
+
+  /** Gently wake her up. */
+  wake(): void {
+    if (!this.sleeping) return;
+    this.cur = null;
+    this.queue = [{ type: 'anim', anim: 'look' }];
+    this.current = null;
+    this.say('*yawn* …huh? Hi!');
+  }
+
   pet(): void {
+    if (this.sleeping) { this.wake(); this.g.fx.push({ type: 'hearts', at: { ...this.pos }, n: 2 }); return; }
     this.stats.pets++;
     this.feel({ type: 'petted' });
     this.g.fx.push({ type: 'hearts', at: { ...this.pos }, n: 5 });
@@ -231,6 +255,57 @@ export class Dog {
       { type: 'anim', anim: 'beg' },
     ];
     return true;
+  }
+
+  /** Pick up the rope and offer the other end to the friend. */
+  private inviteTug(friend: Dog): void {
+    if (!this.g.holdRope(this)) { this.queue = [{ type: 'anim', anim: 'curious' }]; return; }
+    this.faceTo(friend.pos);
+    const ok = !friend.jumping && friend.medium === 'land' && !friend.sleeping
+      && this.brainSaysYes(friend, { kind: 'tugFriend' });
+    if (!ok) {
+      this.g.dropRope(this);
+      this.say('Fine, I’ll tug by myself');
+      this.queue = [{ type: 'anim', anim: 'shake' }, { type: 'anim', anim: 'beg' }];
+      return;
+    }
+    // The friend runs to the other end, then the match starts.
+    const y = this.g.yard;
+    const side = friend.pos.x < this.pos.x ? -1 : 1;
+    const end = y.clampToBounds({ x: this.pos.x + side * 0.18, y: this.pos.y });
+    friend.current = { kind: 'tugFriend' };
+    friend.cur = null;
+    friend.pending = null;
+    friend.queue = [
+      ...y.landPath(friend.pos, end).map((to): Step => ({ type: 'move', to })),
+      { type: 'call', fn: () => { if (!this.g.startTug(this, friend)) friend.queue = []; } },
+      { type: 'tug' },
+    ];
+  }
+
+  /** Ask the other dog's brain (it may say no), and let them say so. */
+  private brainSaysYes(friend: Dog, intent: Intent): boolean {
+    let d = friend.brain.consider(intent, 'friend', friend.context());
+    // When a human set this up, the other dog gets a second chance to say yes.
+    if (!d.accept && this.askedBy !== 'self') d = friend.brain.consider(intent, 'friend', friend.context());
+    if (!d.accept) {
+      const no = friend.profile.lines.noPlay;
+      friend.say(no[Math.floor(Math.random() * no.length)]!);
+      return false;
+    }
+    friend.say(d.line);
+    return true;
+  }
+
+  /** The tug match ended. */
+  tugOver(won: boolean): void {
+    this.feel({ type: 'tugged', won });
+    const lines = won ? this.profile.lines.tugWin : this.profile.lines.tugLose;
+    this.say(lines[Math.floor(Math.random() * lines.length)]!);
+    this.cur = null;
+    this.queue = won
+      ? [{ type: 'anim', anim: 'shake' }, { type: 'call', fn: () => this.g.dropRope(this) }, { type: 'anim', anim: 'beg' }]
+      : [{ type: 'anim', anim: this.profile.whenScared === 'flee' ? 'curious' : 'beg' }];
   }
 
   /** The other dog came over to sniff hello. */
@@ -349,6 +424,33 @@ export class Dog {
         );
         break;
       }
+      case 'tug': {
+        toLand();
+        if (this.g.rope.state !== 'lawn') { steps.push({ type: 'anim', anim: 'curious' }); break; }
+        go(this.g.rope.pos);
+        steps.push({ type: 'call', fn: () => { if (!this.g.startTug(this, 'human')) this.queue = [{ type: 'anim', anim: 'curious' }]; } });
+        steps.push({ type: 'tug' });
+        break;
+      }
+      case 'tugFriend': {
+        if (!friend) break;
+        toLand();
+        if (this.g.rope.state !== 'lawn') { steps.push({ type: 'anim', anim: 'curious' }); break; }
+        go(this.g.rope.pos);
+        steps.push(
+          { type: 'call', fn: () => this.inviteTug(friend) },
+          { type: 'wait', until: () => this.g.rope.state === 'tug' || this.g.rope.state === 'lawn', timeout: 8 },
+          { type: 'tug' },
+        );
+        break;
+      }
+      case 'sleep': {
+        toLand();
+        // Find a quiet spot near the back of the yard.
+        go(y.randomLand({ x: at.x, y: Math.min(at.y, 0.35) }, 0.35));
+        steps.push({ type: 'anim', anim: 'look' }, { type: 'sleep', secs: rand(14, 24) });
+        break;
+      }
       case 'joinFriend': {
         if (!friend) break;
         if (friend.medium === 'water') go(y.clampToPool({ x: friend.pos.x + rand(-0.06, 0.06), y: friend.pos.y + rand(-0.05, 0.05) }));
@@ -400,7 +502,7 @@ export class Dog {
   // ---------- Simulation ----------
 
   update(dt: number): void {
-    this.brain.tick(dt, this.activity, this.medium, this.friend !== null);
+    this.brain.tick(dt, this.activity, this.medium, this.friend !== null, this.g.night);
 
     if (!this.cur && this.queue.length) this.begin(this.queue.shift()!);
     const r = this.cur;
@@ -423,6 +525,16 @@ export class Dog {
         case 'anim': this.anim.tick(dt); if (this.anim.done) this.cur = null; break;
         case 'idle': this.idleAnim(dt); if (r.t >= s.secs) this.cur = null; break;
         case 'wait': this.idleAnim(dt); if (s.until() || r.t > s.timeout) this.cur = null; break;
+        case 'tug':
+          this.anim.tick(dt);
+          if (!this.g.tugging(this)) this.cur = null;
+          break;
+        case 'sleep':
+          this.anim.tick(dt);
+          this.zzzT -= dt;
+          if (this.zzzT <= 0) { this.g.fx.push({ type: 'zzz', at: { ...this.pos } }); this.zzzT = 1.6; }
+          if (r.t >= s.secs) this.cur = null;
+          break;
         case 'call': this.cur = null; break;
       }
       if (!this.cur && !this.queue.length) this.finished();
@@ -491,6 +603,8 @@ export class Dog {
       else if (!step.hop) this.anim.frames = this.anim.frames.slice(1);
       this.cur.dur = this.anim.duration;
     } else if (step.type === 'call') step.fn();
+    else if (step.type === 'tug') this.anim.play('tug', true);
+    else if (step.type === 'sleep') { this.anim.play('sleep', true); this.zzzT = 0.6; }
   }
 
   private idleAnim(dt: number): void {
@@ -566,7 +680,7 @@ export class Dog {
 
   /** Gently push apart when two dogs end up standing on the same spot. */
   nudge(dx: number, dy: number): void {
-    if (this.jumping || this.cur?.step.type === 'move' || this.cur?.step.type === 'chase') return;
+    if (this.jumping || this.cur?.step.type === 'move' || this.cur?.step.type === 'chase' || this.cur?.step.type === 'tug') return;
     const p = this.g.yard.clampToBounds({ x: this.pos.x + dx, y: this.pos.y + dy });
     const inPool = this.g.yard.inPool(p);
     if ((this.medium === 'water') === inPool && !(this.medium === 'land' && this.g.yard.inPool(p, 0.04))) this.pos = p;

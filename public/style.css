@@ -267,12 +267,27 @@ h1 { font-size: clamp(1.25rem, 3.6vw, 1.7rem); margin: 0; font-weight: 700; lett
 @media (max-width: 640px) { .dog-switch { order: -1; width: 100%; } .dog-switch button { flex: 1; } }
 
 .chat-head { flex-wrap: wrap; }
+.chat-head > div { flex: 1; min-width: 0; }
 .chat-head .who { flex-basis: 100%; padding-left: 40px; display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--muted); }
 .chat-head select {
   font: inherit; font-size: 0.85rem; color: var(--ink); background: var(--bg);
   border: 1px solid var(--line); border-radius: 999px; padding: 5px 10px;
 }
 .chat-head select:focus-visible { outline: 2px solid var(--pink); outline-offset: 1px; }
+
+.time-toggle {
+  position: absolute; top: 14px; right: 14px;
+  display: inline-flex; align-items: center; gap: 6px;
+  font: inherit; font-size: 0.85rem; font-weight: 500; color: #3a2a1f;
+  padding: 7px 12px; border-radius: 999px; border: 0; cursor: pointer;
+  background: rgba(255, 250, 244, 0.82);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 6px 18px -10px rgba(0,0,0,.4);
+}
+.time-toggle svg { width: 16px; height: 16px; display: none; }
+.time-toggle[data-mode="auto"] .i-auto, .time-toggle[data-mode="day"] .i-day, .time-toggle[data-mode="night"] .i-night { display: block; }
+.time-toggle:focus-visible { outline: 2px solid var(--pink); outline-offset: 2px; }
+.status { max-width: calc(100% - 140px); }
 
 footer { padding-top: 32px; padding-bottom: 32px; color: var(--muted); font-size: 0.85rem; text-align: center; }
 

@@ -43,7 +43,7 @@ export interface Frame {
     /** Seconds to hold this frame. */
     readonly dur: number;
 }
-export type AnimName = 'idle' | 'runR' | 'runL' | 'swimR' | 'swimL' | 'treadR' | 'treadL' | 'wave' | 'hop' | 'sniff' | 'curious' | 'beg' | 'wink' | 'look' | 'shake' | 'eat';
+export type AnimName = 'idle' | 'runR' | 'runL' | 'swimR' | 'swimL' | 'treadR' | 'treadL' | 'wave' | 'hop' | 'sniff' | 'curious' | 'beg' | 'wink' | 'look' | 'shake' | 'eat' | 'tug' | 'sleep';
 /** Animation recipes. Functions so idle holds can vary each time. */
 export declare const ANIMS: Readonly<Record<AnimName, () => Frame[]>>;
 export declare class AnimPlayer {

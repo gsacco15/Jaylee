@@ -5,7 +5,7 @@
 import { Dog } from './dog.js';
 import { type DogId } from './dogs.js';
 import { Camera, Yard } from './world.js';
-import type { Decision, Intent, Snapshot, Source, Vec, WorldEvent } from './types.js';
+import type { Decision, Intent, Snapshot, Source, TimeOfDay, Vec, WorldEvent } from './types.js';
 /** Visual effects requested by the simulation; the renderer draws them. */
 export type Fx = {
     type: 'splash';
@@ -21,6 +21,11 @@ export type Fx = {
     type: 'hearts';
     at: Vec;
     n: number;
+} | {
+    type: 'zzz';
+    at: Vec;
+} | {
+    type: 'shake';
 };
 export interface Ball {
     state: 'none' | 'flying' | 'rest' | 'mouth';
@@ -36,6 +41,20 @@ export interface Treat {
     visible: boolean;
 }
 export type Mode = DogId | 'both';
+export type TimeMode = 'auto' | 'day' | 'night';
+export interface Rope {
+    state: 'lawn' | 'tug' | 'carried';
+    pos: Vec;
+    /** Who's carrying it (state 'carried'). */
+    holder: DogId | null;
+    /** The two ends during a tug. */
+    a: DogId | null;
+    b: DogId | 'human' | null;
+    t: number;
+    dur: number;
+    anchor: Vec;
+    axis: 1 | -1;
+}
 export type GameEvent = {
     type: 'say';
     dog: DogId;
@@ -67,6 +86,13 @@ export declare class Game {
     time: number;
     ball: Ball;
     treat: Treat;
+    rope: Rope;
+    /** Day/night: follow the local clock, or force one. */
+    timeMode: TimeMode;
+    /** 0 = night, 1 = full day (eased toward the target). */
+    light: number;
+    /** Sunset / sunrise glow, 0..1. */
+    warmth: number;
     private selectedId;
     private listeners;
     constructor();
@@ -88,6 +114,16 @@ export declare class Game {
     pickUpBall(dog: Dog): boolean;
     dropBall(dog: Dog): void;
     private updateBall;
+    get night(): boolean;
+    get timeOfDay(): TimeOfDay;
+    private updateLight;
+    tugging(dog: Dog): boolean;
+    /** Pick the rope up off the lawn. */
+    holdRope(dog: Dog): boolean;
+    dropRope(dog: Dog): void;
+    /** Start a match between a dog and the human, or two dogs. */
+    startTug(a: Dog, b: Dog | 'human'): boolean;
+    private updateRope;
     placeTreat(at: Vec): void;
     eatTreat(): boolean;
     /** Two dogs just played: both feel it. */

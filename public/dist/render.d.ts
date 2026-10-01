@@ -13,6 +13,11 @@ export declare class Renderer {
     private marker;
     /** Screen-space boxes around each dog (draw order), for tapping. */
     private dogBoxes;
+    private shakeT;
+    /** Where each dog's mouth is on screen this frame (for the rope). */
+    private mouths;
+    private readonly stars;
+    private readonly flies;
     private tags;
     private readonly images;
     constructor(canvas: HTMLCanvasElement, game: Game, preload?: readonly HTMLImageElement[]);
@@ -34,6 +39,10 @@ export declare class Renderer {
     /** Image cache keyed by sheet src, shared by every dog using that art. */
     private image;
     private drawDog;
+    private ropeStroke;
+    private drawRopeOnLawn;
+    private drawRopeHeld;
+    private drawNight;
     /** Name tags, drawn after all dogs and nudged apart so they never overlap. */
     private drawTags;
     /** The dog under a screen point, front-most first. */

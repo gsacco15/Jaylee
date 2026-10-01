@@ -139,6 +139,12 @@ document.querySelectorAll('[data-act]').forEach((b) => {
             dog.request({ kind: 'playWith' });
         else if (act === 'greet')
             dog.request({ kind: 'greet' });
+        else if (act === 'tug')
+            dog.request({ kind: 'tug' });
+        else if (act === 'tugFriend')
+            dog.request({ kind: 'tugFriend' });
+        else if (act === 'sleep')
+            dog.request({ kind: 'sleep' });
         else if (TRICKS.includes(act))
             dog.request({ kind: 'trick', trick: act });
     });
@@ -146,6 +152,20 @@ document.querySelectorAll('[data-act]').forEach((b) => {
 $('#roam').addEventListener('change', (e) => {
     game.autonomy = e.target.checked;
 });
+// ---------- Day / night ----------
+const timeBtn = $('#time');
+const TIME_MODES = ['auto', 'day', 'night'];
+const TIME_LABEL = { auto: 'Auto', day: 'Day', night: 'Night' };
+function setTimeMode(mode) {
+    game.timeMode = mode;
+    timeBtn.dataset.mode = mode;
+    $('#time-label').textContent = TIME_LABEL[mode];
+    timeBtn.setAttribute('aria-label', mode === 'auto' ? 'Time of day: follows your clock' : `Time of day: always ${mode}`);
+    store.set('playground:time', mode);
+}
+const savedTime = store.get('playground:time');
+setTimeMode(TIME_MODES.includes(savedTime ?? '') ? savedTime : 'auto');
+timeBtn.addEventListener('click', () => setTimeMode(TIME_MODES[(TIME_MODES.indexOf(game.timeMode) + 1) % 3]));
 // ---------- Chat ----------
 const chat = new Chat(game, $('#chat-log'), $('#chat-form'), $('#chat-input'), saveTraits);
 const humanSel = $('#human');
@@ -192,9 +212,13 @@ function frame(now) {
     requestAnimationFrame(frame);
 }
 function start() {
+    // /jaylee and /helga always open on that dog; the main page remembers your last choice (both dogs by default).
+    const page = document.documentElement.dataset.startMode;
     const saved = store.get('playground:mode');
-    if (saved === 'both' || DOG_IDS.includes(saved ?? ''))
-        game.setMode(saved);
+    if (DOG_IDS.includes(page ?? ''))
+        game.setMode(page);
+    else
+        game.setMode(saved === 'both' || DOG_IDS.includes(saved ?? '') ? saved : 'both');
     resize();
     syncChrome();
     chat.modeChanged(true);

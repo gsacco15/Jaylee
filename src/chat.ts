@@ -26,7 +26,7 @@ const HABIT_NOTE: Record<Habit, string> = {
 const HABITS = Object.keys(HABIT_NOTE) as Habit[];
 
 const TRICKS: readonly Trick[] = ['sit', 'wave', 'hop', 'sniff', 'curious', 'beg', 'wink', 'look'];
-const SIMPLE = ['swim', 'leavePool', 'fetch', 'zoomies', 'wander', 'rest', 'seekAttention', 'playWith', 'greet', 'joinFriend'] as const;
+const SIMPLE = ['swim', 'leavePool', 'fetch', 'zoomies', 'wander', 'rest', 'seekAttention', 'playWith', 'greet', 'joinFriend', 'tug', 'tugFriend', 'sleep'] as const;
 
 /** Only accept intents the chat is allowed to trigger. */
 export function parseIntent(v: unknown): Intent | null {

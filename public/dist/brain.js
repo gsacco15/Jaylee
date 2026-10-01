@@ -17,6 +17,9 @@ const LINES = {
     playWith: ['Chase me! No, I chase YOU!', 'Tag, you’re it!', 'Play with meee!'],
     greet: ['Hiii friend!', 'Sniff hello!', 'Oh it’s you!'],
     joinFriend: ['Wait for me!', 'Coming with you!', 'Me too, me too!'],
+    tugFriend: ['Tug of war! Grab the other end!', 'Bet you can\u2019t pull this!'],
+    tug: ['TUG! Pull, pull, pull!', 'Grrr *happy tail*'],
+    sleep: ['*yawn* Nap time…', 'So… sleepy…', 'Zzz…'],
 };
 const TRICK_LINES = {
     sit: ['Sitting pretty'],
@@ -29,7 +32,7 @@ const TRICK_LINES = {
     look: ['Looking around…', 'Did you hear that?'],
 };
 /** Intents that need energy; she can turn these down when she's exhausted. */
-const ENERGETIC = new Set(['zoomies', 'fetch', 'swim', 'playWith']);
+const ENERGETIC = new Set(['zoomies', 'fetch', 'swim', 'playWith', 'tug', 'tugFriend']);
 const HABITS = {
     swimMore: ['waterLove', 1], swimLess: ['waterLove', -1],
     playMore: ['playfulness', 1], playLess: ['playfulness', -1],
@@ -94,7 +97,7 @@ export class Brain {
         return pool[Math.floor(this.rng() * pool.length)] ?? '';
     }
     /** Needs drift every frame based on what the body is doing. */
-    tick(dt, activity, medium, friendAround = false) {
+    tick(dt, activity, medium, friendAround = false, night = false) {
         const n = this.needs, t = this.personality.traits;
         const rate = {
             idle: { energy: +0.02, boredom: +0.014 * t.playfulness, heat: +0.004 },
@@ -103,9 +106,11 @@ export class Brain {
             paddling: { energy: -0.002, boredom: +0.004, heat: -0.025 },
             trick: { energy: -0.006, boredom: -0.02, heat: +0.002 },
             eating: { energy: +0.03, boredom: -0.01 },
+            tugging: { energy: -0.025, boredom: -0.05, heat: +0.02 },
+            sleeping: { energy: +0.06, boredom: -0.01, heat: -0.01 },
         };
         const r = rate[activity];
-        n.energy = clamp(n.energy + (r.energy ?? 0) * dt, 0, 1);
+        n.energy = clamp(n.energy + ((r.energy ?? 0) - (night && activity !== 'sleeping' ? 0.008 : 0)) * dt, 0, 1);
         n.boredom = clamp(n.boredom + (r.boredom ?? 0) * dt, 0, 1);
         n.heat = clamp(n.heat + (r.heat ?? 0) * dt + (medium === 'water' ? -0.01 * dt : 0), 0, 1);
         n.curiosity = clamp(n.curiosity + (medium === 'land' ? 0.012 * t.curiosity : 0.003) * dt, 0, 1);
@@ -146,6 +151,11 @@ export class Brain {
             case 'feeling':
                 applyEmotion(n, e.emotion);
                 break;
+            case 'tugged':
+                n.boredom = clamp(n.boredom - 0.35, 0, 1);
+                if (e.won)
+                    n.affection = clamp(n.affection - 0.05, 0, 1);
+                break;
             case 'playedWithFriend':
                 n.social = clamp(n.social - 0.55, 0, 1);
                 n.boredom = clamp(n.boredom - 0.25, 0, 1);
@@ -171,6 +181,8 @@ export class Brain {
             n.boredom = clamp(n.boredom - 0.4, 0, 1);
         else if (intent.kind === 'greet' || intent.kind === 'joinFriend')
             n.social = clamp(n.social - 0.2, 0, 1);
+        else if (intent.kind === 'tugFriend')
+            n.social = clamp(n.social - 0.4, 0, 1);
     }
     get happiness() {
         const n = this.needs;
@@ -229,10 +241,23 @@ export class Brain {
                 add({ kind: 'joinFriend' }, n.social * t.sociability * pull * 0.9 * awake);
             }
         }
+        if (ctx.rope === 'lawn' && ctx.medium === 'land') {
+            // Tug is pure play, so it's playfulness (not sociability) that pulls a dog in.
+            if (f && f.medium === 'land' && !f.busy)
+                add({ kind: 'tugFriend' }, (0.1 + n.boredom * t.playfulness * 0.9 + n.social * 0.3) * n.energy * awake);
+        }
+        if (ctx.night && ctx.medium === 'land') {
+            add({ kind: 'sleep' }, 0.45 + (1 - n.energy) * 1.2);
+        }
         if (ctx.ball === 'lawn' || ctx.ball === 'pool') {
             const wet = ctx.ball === 'pool' ? 0.6 + t.waterLove * 0.5 : 1;
             add({ kind: 'fetch' }, (n.boredom * t.playfulness * n.energy * 1.4 + 0.08) * wet * awake);
         }
+        // At night everything but sleep and rest is less tempting.
+        if (ctx.night)
+            for (const x of o)
+                if (x.intent.kind !== 'sleep' && x.intent.kind !== 'rest')
+                    x.score *= 0.45;
         return o.sort((a, b) => b.score - a.score);
     }
     /** Pick something to do on her own: weighted toward the top few options. */
@@ -256,7 +281,9 @@ export class Brain {
         const n = this.needs, t = this.personality.traits;
         if (source === 'friend') {
             // An invitation from the other dog: up to her mood and how social she is.
-            const keen = n.energy > 0.2 && this.rng() < 0.15 + t.sociability * 0.6 + n.social * 0.25;
+            const keen = n.energy > 0.2 && this.rng() < (intent.kind === 'tugFriend'
+                ? 0.3 + t.playfulness * 0.6 // any excuse to tug
+                : 0.15 + t.sociability * 0.6 + n.social * 0.25);
             if (!keen)
                 return { accept: false, line: n.energy <= 0.2 ? 'Too tired to play…' : 'Not now, buddy' };
         }

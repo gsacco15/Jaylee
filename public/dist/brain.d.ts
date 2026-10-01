@@ -21,6 +21,10 @@ export interface BrainContext {
         distance: number;
         busy: boolean;
     } | null;
+    /** The rope toy: lying on the lawn, being tugged, or in someone's mouth. */
+    rope?: 'lawn' | 'tug' | 'carried';
+    /** It's dark out: dogs get sleepy. */
+    night?: boolean;
 }
 export interface Option {
     intent: Intent;
@@ -37,7 +41,7 @@ export declare class Brain {
     adjustHabit(habit: Habit): keyof Traits;
     private line;
     /** Needs drift every frame based on what the body is doing. */
-    tick(dt: number, activity: Activity, medium: Medium, friendAround?: boolean): void;
+    tick(dt: number, activity: Activity, medium: Medium, friendAround?: boolean, night?: boolean): void;
     /** React to something that happened to her. */
     feel(e: WorldEvent): void;
     /** Called when an intent finishes so it can satisfy the matching need. */

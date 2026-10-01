@@ -140,6 +140,9 @@ const SIMPLE_TOOLS: ReadonlyArray<readonly [string, Simple, string, boolean]> = 
   ['play_with_friend', 'playWith', 'Play chase with the other dog (play bow, then chase them down).', true],
   ['greet_friend', 'greet', 'Trot over to the other dog and sniff hello.', true],
   ['join_friend', 'joinFriend', 'Go to wherever the other dog is, even into the pool.', true],
+  ['tug_with_human', 'tug', 'Grab the rope toy and play tug-of-war with the human.', false],
+  ['tug_with_friend', 'tugFriend', 'Grab the rope toy and play tug-of-war with the other dog. The stronger dog usually wins.', true],
+  ['go_to_sleep', 'sleep', 'Curl up for a nap (good at night or when tired).', false],
 ];
 
 function buildTools(dogs: readonly DogId[]): Anthropic.Beta.BetaTool[] {
@@ -203,7 +206,8 @@ function describe(id: DogId, s: Partial<Snapshot> | undefined): string {
     `- where: ${pick(s?.medium, ['land', 'water'] as const, 'land') === 'water' ? 'swimming in the pool' : 'on the lawn'}${s?.wet ? ', still wet' : ''}`,
     `- mood: ${pick(s?.mood, ['happy', 'playful', 'sleepy', 'hot', 'curious', 'needy', 'content'] as const, 'content')}`,
     `- energy ${pct(n.energy)}, heat ${pct(n.heat)}, boredom ${pct(n.boredom)}, curiosity ${pct(n.curiosity)}, wants affection ${pct(n.affection)}, wants to play with friend ${pct(n.social)}`,
-    `- ball: ${pick(s?.ball, ['none', 'flying', 'lawn', 'pool', 'mouth'] as const, 'none')}`,
+    `- ball: ${pick(s?.ball, ['none', 'flying', 'lawn', 'pool', 'mouth'] as const, 'none')}; rope toy: ${pick(s?.rope, ['lawn', 'tug', 'carried'] as const, 'lawn')}`,
+    `- time of day: ${pick(s?.timeOfDay, ['morning', 'day', 'evening', 'night'] as const, 'day')}${s?.activity === 'sleeping' ? ' (asleep right now)' : ''}`,
     `- habits: loves water ${pct(t.waterLove)}, playful ${pct(t.playfulness)}, curious ${pct(t.curiosity)}, cuddly ${pct(t.cuddliness)}, obedient ${pct(t.obedience)}, sociable ${pct(t.sociability)}`,
   ].join('\n');
 }

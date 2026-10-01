@@ -21,6 +21,8 @@ export interface DogProfile {
     readonly standIn?: boolean;
     /** Their person. */
     readonly owner: string;
+    /** Pulling power in tug-of-war, 0..1. */
+    readonly strength: number;
     /** What they do when spooked: run off and hide, or run to their people. */
     readonly whenScared: 'flee' | 'comfort';
     readonly lines: {
@@ -29,6 +31,8 @@ export interface DogProfile {
         readonly hello: string;
         readonly noPlay: readonly string[];
         readonly scared: readonly string[];
+        readonly tugWin: readonly string[];
+        readonly tugLose: readonly string[];
     };
 }
 export declare const DOGS: Readonly<Record<DogId, DogProfile>>;

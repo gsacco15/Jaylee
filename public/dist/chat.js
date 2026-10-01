@@ -14,7 +14,7 @@ const HABIT_NOTE = {
 };
 const HABITS = Object.keys(HABIT_NOTE);
 const TRICKS = ['sit', 'wave', 'hop', 'sniff', 'curious', 'beg', 'wink', 'look'];
-const SIMPLE = ['swim', 'leavePool', 'fetch', 'zoomies', 'wander', 'rest', 'seekAttention', 'playWith', 'greet', 'joinFriend'];
+const SIMPLE = ['swim', 'leavePool', 'fetch', 'zoomies', 'wander', 'rest', 'seekAttention', 'playWith', 'greet', 'joinFriend', 'tug', 'tugFriend', 'sleep'];
 /** Only accept intents the chat is allowed to trigger. */
 export function parseIntent(v) {
     if (typeof v !== 'object' || v === null)

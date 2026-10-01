@@ -9,8 +9,8 @@ export type SheetId = 'main' | 'swim';
 export interface SheetInfo { readonly src: string; readonly cellW: number; readonly cellH: number }
 
 export const SHEETS: Readonly<Record<SheetId, SheetInfo>> = {
-  main: { src: 'assets/jaylee-sprites.webp', cellW: 1343 / 8, cellH: 2000 / 11 },
-  swim: { src: 'assets/jaylee-swim.webp', cellW: 250, cellH: 230 },
+  main: { src: '/assets/jaylee-sprites.webp', cellW: 1343 / 8, cellH: 2000 / 11 },
+  swim: { src: '/assets/jaylee-swim.webp', cellW: 250, cellH: 230 },
 };
 
 /** Main-sheet px height of her sitting pose, used to size her on screen. */
@@ -46,7 +46,7 @@ export const ROWS: Readonly<Record<RowKey, RowInfo>> = {
   runR:    main(1, 8, 330, true, [34, 72]), // gallop →
   runL:    main(2, 8, 512, true, [34, 72]), // gallop ←
   wave:    main(3, 4, 722),               // paw up hello
-  hop:     main(4, 5, 904),               // crouch, leap, land, stand
+  hop:     main(4, 5, 904, false, [44, 92]),               // crouch, leap, land, stand
   sniff:   main(5, 8, 1085),              // nose to ground and back
   curious: main(6, 6, 1268),              // head tilt, paw lift
   beg:     main(7, 6, 1450),              // tongue out, paw swipes
@@ -70,7 +70,7 @@ export const JAYLEE_SPRITES: SpriteSet = { sheets: SHEETS, rows: ROWS };
  * Helga: assets/helga-sprites.webp, same 8 × 11 layout as Jaylee's main sheet.
  * No swim sheet yet, so in the pool Helga paddles with the run rows (cut at the waterline).
  */
-const helgaMain: SheetInfo = { src: 'assets/helga-sprites.webp', cellW: 1343 / 8, cellH: 2000 / 11 };
+const helgaMain: SheetInfo = { src: '/assets/helga-sprites.webp', cellW: 1343 / 8, cellH: 2000 / 11 };
 const helga = (row: number, frames: number, feet: number, directional = false, mouth: readonly [number, number] = [28, 96]): RowInfo =>
   ({ sheet: 'main', row, frames, feet, directional, scale: 1, sink: 46, mouth });
 
@@ -81,7 +81,7 @@ export const HELGA_SPRITES: SpriteSet = {
     runR:    helga(1, 8, 354, true, [42, 66]),
     runL:    helga(2, 8, 536, true, [42, 66]),
     wave:    helga(3, 4, 718),
-    hop:     helga(4, 5, 904),
+    hop:     helga(4, 5, 904, false, [38, 78]),
     sniff:   helga(5, 8, 1081),
     curious: helga(6, 6, 1263),
     beg:     helga(7, 6, 1445),
@@ -102,7 +102,8 @@ export interface Frame {
 
 export type AnimName =
   | 'idle' | 'runR' | 'runL' | 'swimR' | 'swimL' | 'treadR' | 'treadL'
-  | 'wave' | 'hop' | 'sniff' | 'curious' | 'beg' | 'wink' | 'look' | 'shake' | 'eat';
+  | 'wave' | 'hop' | 'sniff' | 'curious' | 'beg' | 'wink' | 'look' | 'shake' | 'eat'
+  | 'tug' | 'sleep';
 
 const seq = (key: RowKey, cols: readonly number[], dur: number | readonly number[]): Frame[] =>
   cols.map((col, i) => ({ key, col, dur: typeof dur === 'number' ? dur : dur[i] ?? 0.15 }));
@@ -129,6 +130,10 @@ export const ANIMS: Readonly<Record<AnimName, () => Frame[]>> = {
     ...seq('lookL', run8, [0.14, 0.14, 0.14, 0.4, 0.14, 0.14, 0.14, 0.5]),
   ],
   shake: () => seq('lookR', [3, 4, 3, 4, 3], 0.09),
+  // Crouched low, pulling: the hop row's crouch frame, held.
+  tug: () => seq('hop', [0], 0.5),
+  // No sleeping frames: head down (sniff) held, with Zzz drawn on top.
+  sleep: () => seq('sniff', [4], 2),
   // Nose down to the treat, munch, look up happy.
   eat: () => [...seq('sniff', [0, 1, 2, 3, 4, 3, 4, 3, 4], [0.15, 0.12, 0.12, 0.15, 0.2, 0.18, 0.2, 0.18, 0.25]), ...seq('beg', [0, 2], 0.4)],
 };

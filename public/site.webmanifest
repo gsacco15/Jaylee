@@ -1,0 +1,30 @@
+{
+  "name": "Jaylee & Helga’s Playground",
+  "short_name": "Jaylee & Helga",
+  "description": "Two very good girls, one backyard pool. Play tug-of-war, throw the ball, and chat with Jaylee and Helga.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7efe6",
+  "theme_color": "#f7efe6",
+  "icons": [
+    {
+      "src": "/brand/icon-both-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/brand/icon-both-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/brand/icon-both-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

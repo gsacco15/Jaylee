@@ -40,12 +40,18 @@ export type Intent = {
     kind: 'greet';
 } | {
     kind: 'joinFriend';
+} | {
+    kind: 'tugFriend';
+} | {
+    kind: 'tug';
+} | {
+    kind: 'sleep';
 };
 export type IntentKind = Intent['kind'];
 /** Who asked for an intent. The brain treats them differently. */
 export type Source = 'player' | 'self' | 'chat' | 'friend';
 /** What her body is physically doing right now (drives need changes). */
-export type Activity = 'idle' | 'running' | 'swimming' | 'paddling' | 'trick' | 'eating';
+export type Activity = 'idle' | 'running' | 'swimming' | 'paddling' | 'trick' | 'eating' | 'tugging' | 'sleeping';
 /**
  * Drives in 0..1. Higher means a stronger urge,
  * except energy, where 1 = fully rested.
@@ -104,6 +110,9 @@ export type WorldEvent = {
 } | {
     type: 'playedWithFriend';
 } | {
+    type: 'tugged';
+    won: boolean;
+} | {
     type: 'feeling';
     emotion: Emotion;
 };
@@ -133,7 +142,10 @@ export interface Snapshot {
         activity: Activity;
         distance: number;
     } | null;
+    timeOfDay: TimeOfDay;
+    rope: 'lawn' | 'tug' | 'carried';
 }
+export type TimeOfDay = 'morning' | 'day' | 'evening' | 'night';
 export interface Stats {
     fetches: number;
     swims: number;
