@@ -7,7 +7,7 @@
  * chat model) go through `consider`, so she can say yes, or say no when she's
  * worn out.
  */
-import type { Activity, Decision, Intent, Medium, Mood, Needs, Personality, WorldEvent } from './types.js';
+import type { Activity, Decision, Habit, Intent, Medium, Mood, Needs, Personality, Traits, WorldEvent } from './types.js';
 export declare const JAYLEE: Personality;
 /** What the brain needs to know about the world to choose well. */
 export interface BrainContext {
@@ -22,11 +22,13 @@ export interface Option {
 }
 export declare const intentKey: (i: Intent) => string;
 export declare class Brain {
-    readonly personality: Personality;
     private readonly rng;
     readonly needs: Needs;
     private readonly cooldowns;
+    readonly personality: Personality;
     constructor(personality?: Personality, rng?: () => number);
+    /** Nudge her personality for good. Returns the trait that changed. */
+    adjustHabit(habit: Habit): keyof Traits;
     private line;
     /** Needs drift every frame based on what the body is doing. */
     tick(dt: number, activity: Activity, medium: Medium): void;

@@ -8,7 +8,7 @@
  * worn out.
  */
 import type {
-  Activity, Decision, Intent, IntentKind, Medium, Mood, Needs, Personality, Trick, WorldEvent,
+  Activity, Decision, Emotion, Habit, Intent, IntentKind, Medium, Mood, Needs, Personality, Traits, Trick, WorldEvent,
 } from './types.js';
 import { clamp } from './world.js';
 
@@ -57,16 +57,47 @@ const TRICK_LINES: Readonly<Record<Trick, readonly string[]>> = {
 /** Intents that need energy; she can turn these down when she's exhausted. */
 const ENERGETIC: ReadonlySet<IntentKind> = new Set(['zoomies', 'fetch', 'swim']);
 
+const HABITS: Readonly<Record<Habit, readonly [keyof Traits, 1 | -1]>> = {
+  swimMore: ['waterLove', 1], swimLess: ['waterLove', -1],
+  playMore: ['playfulness', 1], playLess: ['playfulness', -1],
+  cuddleMore: ['cuddliness', 1], cuddleLess: ['cuddliness', -1],
+  exploreMore: ['curiosity', 1], exploreLess: ['curiosity', -1],
+  listenMore: ['obedience', 1],
+};
+
+/** Chat feelings push her needs, which changes what she chooses next. */
+function applyEmotion(n: Needs, e: Emotion): void {
+  const add = (k: keyof Needs, v: number): void => { n[k] = clamp(n[k] + v, 0, 1); };
+  switch (e) {
+    case 'loved': add('affection', -0.4); add('boredom', -0.1); break;
+    case 'excited': add('boredom', 0.35); add('energy', 0.1); break;
+    case 'calm': add('boredom', -0.25); add('energy', -0.15); break;
+    case 'curious': add('curiosity', 0.45); break;
+    case 'sad': add('affection', 0.45); add('boredom', 0.1); break;
+    case 'hot': add('heat', 0.4); break;
+  }
+}
+
 export const intentKey = (i: Intent): string => (i.kind === 'trick' ? `trick:${i.trick}` : i.kind);
 
 export class Brain {
   readonly needs: Needs = { energy: 0.85, boredom: 0.35, heat: 0.35, curiosity: 0.4, affection: 0.3 };
   private readonly cooldowns = new Map<string, number>();
 
-  constructor(
-    readonly personality: Personality = JAYLEE,
-    private readonly rng: () => number = Math.random,
-  ) {}
+  readonly personality: Personality;
+
+  constructor(personality: Personality = JAYLEE, private readonly rng: () => number = Math.random) {
+    // Own copy: habits learned in chat change these traits.
+    this.personality = { name: personality.name, traits: { ...personality.traits } };
+  }
+
+  /** Nudge her personality for good. Returns the trait that changed. */
+  adjustHabit(habit: Habit): keyof Traits {
+    const [trait, dir] = HABITS[habit];
+    const t = this.personality.traits;
+    t[trait] = clamp(t[trait] + dir * 0.2, 0.1, 1);
+    return trait;
+  }
 
   private line(intent: Intent): string {
     const pool = intent.kind === 'trick' ? TRICK_LINES[intent.trick] : LINES[intent.kind];
@@ -104,6 +135,8 @@ export class Brain {
       case 'fetched': n.boredom = clamp(n.boredom - 0.3, 0, 1); n.affection = clamp(n.affection - 0.1, 0, 1); break;
       case 'enteredWater': n.heat = clamp(n.heat - 0.1, 0, 1); break;
       case 'ballThrown': n.boredom = clamp(n.boredom + 0.1, 0, 1); break;
+      case 'talkedTo': n.affection = clamp(n.affection - 0.08, 0, 1); break;
+      case 'feeling': applyEmotion(n, e.emotion); break;
       case 'ballLanded': case 'leftWater': break;
     }
   }

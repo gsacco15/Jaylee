@@ -90,7 +90,16 @@ export type WorldEvent = {
     type: 'enteredWater';
 } | {
     type: 'leftWater';
+} | {
+    type: 'talkedTo';
+} | {
+    type: 'feeling';
+    emotion: Emotion;
 };
+/** How something said in chat made her feel. Shifts her needs. */
+export type Emotion = 'loved' | 'excited' | 'calm' | 'curious' | 'sad' | 'hot';
+/** Lasting habit changes her human can ask for in chat. Shifts her traits. */
+export type Habit = 'swimMore' | 'swimLess' | 'playMore' | 'playLess' | 'cuddleMore' | 'cuddleLess' | 'exploreMore' | 'exploreLess' | 'listenMore';
 /** Read-only view of Jaylee, safe to hand to UI or an AI model. */
 export interface Snapshot {
     name: string;
@@ -104,6 +113,7 @@ export interface Snapshot {
     wet: boolean;
     ball: 'none' | 'flying' | 'lawn' | 'pool' | 'mouth';
     stats: Readonly<Stats>;
+    traits: Readonly<Traits>;
 }
 export interface Stats {
     fetches: number;

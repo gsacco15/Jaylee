@@ -1,9 +1,24 @@
 /** Chat with Jaylee: talks to /api/chat and feeds her chosen actions to the game. */
 import type { Game } from './game.js';
-import type { Intent, Trick } from './types.js';
+import type { Emotion, Habit, Intent, Trick } from './types.js';
 
 interface Msg { role: 'user' | 'assistant'; text: string }
-interface ChatResponse { reply?: unknown; intents?: unknown; error?: unknown }
+interface ChatResponse { reply?: unknown; intents?: unknown; feelings?: unknown; habits?: unknown; error?: unknown }
+
+const EMOTIONS: readonly Emotion[] = ['loved', 'excited', 'calm', 'curious', 'sad', 'hot'];
+const FEELING_NOTE: Record<Emotion, string> = {
+  loved: 'Jaylee feels loved', excited: 'Jaylee is all wound up', calm: 'Jaylee settles down',
+  curious: 'Jaylee\u2019s ears perk up', sad: 'Jaylee\u2019s ears droop', hot: 'Jaylee feels the heat',
+};
+const HABIT_NOTE: Record<Habit, string> = {
+  swimMore: 'New habit: swims more often', swimLess: 'New habit: swims less often',
+  playMore: 'New habit: more playful', playLess: 'New habit: calmer',
+  cuddleMore: 'New habit: comes to you more', cuddleLess: 'New habit: more independent',
+  exploreMore: 'New habit: explores more', exploreLess: 'New habit: explores less',
+  listenMore: 'New habit: listens better',
+};
+const pickList = <T extends string>(v: unknown, opts: readonly T[]): T[] =>
+  Array.isArray(v) ? v.filter((x): x is T => (opts as readonly unknown[]).includes(x)).slice(0, 2) : [];
 
 const TRICKS: readonly Trick[] = ['sit', 'wave', 'hop', 'sniff', 'curious', 'beg', 'wink', 'look'];
 const SIMPLE = ['swim', 'leavePool', 'fetch', 'zoomies', 'wander', 'rest', 'seekAttention'] as const;
@@ -30,6 +45,8 @@ export class Chat {
     private readonly log: HTMLElement,
     private readonly form: HTMLFormElement,
     private readonly input: HTMLInputElement,
+    /** Called after chat changes one of her habits (to save it). */
+    private readonly onHabit: () => void = () => {},
     private readonly endpoint = '/api/chat',
   ) {
     form.addEventListener('submit', (e) => {
@@ -56,6 +73,7 @@ export class Chat {
     this.form.classList.add('busy');
     this.bubble('user', text);
     this.history.push({ role: 'user', text });
+    this.game.hear();
     const typing = this.bubble('assistant', '•••');
     typing.classList.add('typing');
 
@@ -75,8 +93,21 @@ export class Chat {
       this.history.push({ role: 'assistant', text: data.reply });
       this.bubble('assistant', data.reply);
       this.game.say(data.reply.replace(/\*[^*]+\*/g, '').trim() || data.reply);
+      for (const e of pickList(data.feelings, EMOTIONS)) {
+        this.game.sense(e);
+        this.bubble('note', FEELING_NOTE[e]);
+      }
+      const habits = pickList(data.habits, Object.keys(HABIT_NOTE) as Habit[]);
+      for (const h of habits) {
+        this.game.brain.adjustHabit(h);
+        this.bubble('note', HABIT_NOTE[h]);
+      }
+      if (habits.length) this.onHabit();
       const intents = Array.isArray(data.intents) ? data.intents.map(parseIntent).filter((i): i is Intent => i !== null) : [];
-      this.queue.push(...intents.slice(0, 2));
+      // The first action interrupts whatever she was doing; a second one waits its turn.
+      const [first, second] = intents;
+      if (first) this.run(first);
+      if (second) this.queue.push(second);
     } catch {
       typing.remove();
       this.history.pop();
@@ -90,7 +121,10 @@ export class Chat {
   /** Run queued actions one at a time, whenever she's free. */
   tick(): void {
     if (!this.queue.length || this.game.busy) return;
-    const intent = this.queue.shift()!;
+    this.run(this.queue.shift()!);
+  }
+
+  private run(intent: Intent): void {
     const d = this.game.request(intent, 'chat');
     if (!d.accept) this.bubble('note', `Jaylee: “${d.line}”`);
   }

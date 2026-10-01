@@ -54,3 +54,31 @@ test('routes jump into the pool and walk around it', () => {
   const out = y.route({ x: 0.7, y: 0.5 }, 'water', { x: 0.2, y: 0.5 });
   assert.ok(out.some((l) => l.type === 'jump' && l.into === 'land'));
 });
+
+test('chat feelings shift her needs and her next choice', () => {
+  const b = new Brain(undefined, fixed);
+  Object.assign(b.needs, { heat: 0.1, energy: 0.8, boredom: 0.1, curiosity: 0.1, affection: 0.1 });
+  b.feel({ type: 'feeling', emotion: 'hot' });
+  b.feel({ type: 'feeling', emotion: 'hot' });
+  assert.equal(b.options(land)[0].intent.kind, 'swim');
+  b.feel({ type: 'feeling', emotion: 'sad' });
+  b.feel({ type: 'feeling', emotion: 'sad' });
+  assert.ok(b.needs.affection > 0.8);
+  b.feel({ type: 'feeling', emotion: 'loved' });
+  assert.ok(b.needs.affection < 0.7);
+});
+
+test('habits learned in chat change her personality, within limits', () => {
+  const b = new Brain(undefined, fixed);
+  const before = b.personality.traits.waterLove;
+  b.adjustHabit('swimLess');
+  assert.ok(b.personality.traits.waterLove < before);
+  for (let i = 0; i < 10; i++) b.adjustHabit('swimLess');
+  assert.equal(b.personality.traits.waterLove, 0.1);
+  // A hot dog that was told to swim less is much less keen on the pool.
+  Object.assign(b.needs, { heat: 0.9, energy: 0.8 });
+  const swim = b.options(land).find((o) => o.intent.kind === 'swim');
+  assert.ok(swim.score < 0.3);
+  // The default personality is untouched.
+  assert.equal(new Brain().personality.traits.waterLove, 0.95);
+});

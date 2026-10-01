@@ -5,7 +5,7 @@
 import { AnimPlayer } from './sprites.js';
 import { Brain, type BrainContext } from './brain.js';
 import { Camera, Yard } from './world.js';
-import type { Activity, Decision, Intent, Medium, Snapshot, Source, Stats, Vec, WorldEvent } from './types.js';
+import type { Activity, Decision, Emotion, Intent, Medium, Snapshot, Source, Stats, Vec, WorldEvent } from './types.js';
 /** Visual effects requested by the simulation; the renderer draws them. */
 export type Fx = {
     type: 'splash';
@@ -84,6 +84,10 @@ export declare class Game {
     request(intent: Intent, source?: Source): Decision;
     /** Player throws the ball; Jaylee decides whether to chase it. */
     throwBall(): void;
+    /** Someone talked to her in chat: she pauses and listens. */
+    hear(): void;
+    /** A feeling from chat. */
+    sense(emotion: Emotion): void;
     pet(): void;
     private feel;
     private start;

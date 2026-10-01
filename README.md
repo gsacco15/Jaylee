@@ -57,9 +57,14 @@ Every `Intent` is a typed union. The chat maps Claude's tool calls onto these in
 
 ### Chat
 
-`POST /api/chat` takes `{ messages: [{ role, text }], state: Snapshot }` and returns `{ reply, intents }`.
+`POST /api/chat` takes `{ messages: [{ role, text }], state: Snapshot }` and returns `{ reply, intents, feelings, habits }`.
 - The persona prompt lives in `api/chat.ts`. Her live state (mood, needs, whether she is in the pool, where the ball is) is sent as a system message, so her words match how she feels.
 - She has 8 action tools (swim, leave the pool, fetch, tricks, zoomies, wander, rest, come to her human), with at most 2 actions per reply.
+- Chatting changes her behavior, not just her next action:
+  - **Being talked to** counts as attention: she stops, tilts her head, and listens.
+  - **Feelings** (`feel` tool: loved, excited, calm, curious, sad, hot) shift her needs. For example, "it's so hot" makes her want the pool, and "good girl" fills her need for affection. Her own later decisions follow.
+  - **Habits** (`change_habit` tool, e.g. "swim less", "be calmer") permanently adjust her personality traits. They are saved in the browser (`localStorage`, key `jaylee:traits`).
+  - The chat shows a short note whenever her feelings or habits change.
 - Abuse guards: the last 20 messages are kept, each message is limited to 500 characters, and the reply size is capped. There is no login or rate limit, so watch usage on your Anthropic account.
 
 ## Sprite sheet states

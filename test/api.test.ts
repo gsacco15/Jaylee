@@ -4,7 +4,10 @@ import assert from 'node:assert/strict';
 // Mock the Claude API: first a tool call, then her spoken reply.
 const calls: any[] = [];
 const replies = [
-  { content: [{ type: 'text', text: 'Pool!' }, { type: 'tool_use', id: 'tu_1', name: 'go_swim', input: {} }], stop_reason: 'tool_use' },
+  { content: [{ type: 'text', text: 'Pool!' }, { type: 'tool_use', id: 'tu_1', name: 'go_swim', input: {} },
+    { type: 'tool_use', id: 'tu_2', name: 'feel', input: { emotion: 'excited' } },
+    { type: 'tool_use', id: 'tu_3', name: 'change_habit', input: { habit: 'swimMore' } },
+    { type: 'tool_use', id: 'tu_4', name: 'feel', input: { emotion: 'evil' } }], stop_reason: 'tool_use' },
   { content: [{ type: 'text', text: '*splash* Come swim with me!' }], stop_reason: 'end_turn' },
 ];
 let POST: (r: Request) => Promise<Response>;
@@ -30,6 +33,8 @@ test('chat returns her reply and the actions she chose', async () => {
   assert.equal(res.status, 200);
   const data = await res.json();
   assert.deepEqual(data.intents, [{ kind: 'swim' }]);
+  assert.deepEqual(data.feelings, ['excited']);
+  assert.deepEqual(data.habits, ['swimMore']);
   assert.match(data.reply, /Pool!.*Come swim/);
 
   const first = calls[0];
@@ -40,7 +45,9 @@ test('chat returns her reply and the actions she chose', async () => {
   assert.equal(last.role, 'system');
   assert.match(last.content, /heat 90%/);
   // Second round carries the tool result back.
-  assert.equal(calls[1].messages.at(-1).content[0].type, 'tool_result');
+  const results = calls[1].messages.at(-1).content;
+  assert.equal(results.length, 4);
+  assert.equal(results[3].is_error, true); // unknown emotion rejected
 });
 
 test('rejects bad input', async () => {

@@ -27,15 +27,58 @@ const TRICK_LINES = {
 };
 /** Intents that need energy; she can turn these down when she's exhausted. */
 const ENERGETIC = new Set(['zoomies', 'fetch', 'swim']);
+const HABITS = {
+    swimMore: ['waterLove', 1], swimLess: ['waterLove', -1],
+    playMore: ['playfulness', 1], playLess: ['playfulness', -1],
+    cuddleMore: ['cuddliness', 1], cuddleLess: ['cuddliness', -1],
+    exploreMore: ['curiosity', 1], exploreLess: ['curiosity', -1],
+    listenMore: ['obedience', 1],
+};
+/** Chat feelings push her needs, which changes what she chooses next. */
+function applyEmotion(n, e) {
+    const add = (k, v) => { n[k] = clamp(n[k] + v, 0, 1); };
+    switch (e) {
+        case 'loved':
+            add('affection', -0.4);
+            add('boredom', -0.1);
+            break;
+        case 'excited':
+            add('boredom', 0.35);
+            add('energy', 0.1);
+            break;
+        case 'calm':
+            add('boredom', -0.25);
+            add('energy', -0.15);
+            break;
+        case 'curious':
+            add('curiosity', 0.45);
+            break;
+        case 'sad':
+            add('affection', 0.45);
+            add('boredom', 0.1);
+            break;
+        case 'hot':
+            add('heat', 0.4);
+            break;
+    }
+}
 export const intentKey = (i) => (i.kind === 'trick' ? `trick:${i.trick}` : i.kind);
 export class Brain {
-    personality;
     rng;
     needs = { energy: 0.85, boredom: 0.35, heat: 0.35, curiosity: 0.4, affection: 0.3 };
     cooldowns = new Map();
+    personality;
     constructor(personality = JAYLEE, rng = Math.random) {
-        this.personality = personality;
         this.rng = rng;
+        // Own copy: habits learned in chat change these traits.
+        this.personality = { name: personality.name, traits: { ...personality.traits } };
+    }
+    /** Nudge her personality for good. Returns the trait that changed. */
+    adjustHabit(habit) {
+        const [trait, dir] = HABITS[habit];
+        const t = this.personality.traits;
+        t[trait] = clamp(t[trait] + dir * 0.2, 0.1, 1);
+        return trait;
     }
     line(intent) {
         const pool = intent.kind === 'trick' ? TRICK_LINES[intent.trick] : LINES[intent.kind];
@@ -86,6 +129,12 @@ export class Brain {
                 break;
             case 'ballThrown':
                 n.boredom = clamp(n.boredom + 0.1, 0, 1);
+                break;
+            case 'talkedTo':
+                n.affection = clamp(n.affection - 0.08, 0, 1);
+                break;
+            case 'feeling':
+                applyEmotion(n, e.emotion);
                 break;
             case 'ballLanded':
             case 'leftWater': break;

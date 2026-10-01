@@ -6,7 +6,7 @@ import { AnimPlayer, SIT_H, type AnimName } from './sprites.js';
 import { Brain, type BrainContext } from './brain.js';
 import { Camera, Yard, dist, rand, type Leg } from './world.js';
 import type {
-  Activity, Decision, Intent, Medium, Snapshot, Source, Stats, Vec, WorldEvent,
+  Activity, Decision, Emotion, Intent, Medium, Snapshot, Source, Stats, Vec, WorldEvent,
 } from './types.js';
 
 /** Visual effects requested by the simulation; the renderer draws them. */
@@ -127,6 +127,7 @@ export class Game {
       wet: this.wet > 0 || this.medium === 'water',
       ball: this.ballWhere(),
       stats: { ...this.stats },
+      traits: { ...this.brain.personality.traits },
     };
   }
 
@@ -165,6 +166,22 @@ export class Game {
     this.pending = null;
     this.current = null;
     this.idleFor = 0;
+  }
+
+  /** Someone talked to her in chat: she pauses and listens. */
+  hear(): void {
+    this.feel({ type: 'talkedTo' });
+    this.nextThink = Math.max(this.nextThink, this.idleFor + 8);
+    if (!this.busy && this.medium === 'land') {
+      this.current = null;
+      this.queue = [{ type: 'anim', anim: 'curious' }];
+    }
+  }
+
+  /** A feeling from chat. */
+  sense(emotion: Emotion): void {
+    this.feel({ type: 'feeling', emotion });
+    if (emotion === 'loved') this.fx.push({ type: 'hearts', at: { ...this.pos }, n: 4 });
   }
 
   pet(): void {

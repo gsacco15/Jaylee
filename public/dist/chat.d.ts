@@ -8,13 +8,18 @@ export declare class Chat {
     private readonly log;
     private readonly form;
     private readonly input;
+    /** Called after chat changes one of her habits (to save it). */
+    private readonly onHabit;
     private readonly endpoint;
     private history;
     private queue;
     private sending;
-    constructor(game: Game, log: HTMLElement, form: HTMLFormElement, input: HTMLInputElement, endpoint?: string);
+    constructor(game: Game, log: HTMLElement, form: HTMLFormElement, input: HTMLInputElement, 
+    /** Called after chat changes one of her habits (to save it). */
+    onHabit?: () => void, endpoint?: string);
     private bubble;
     send(raw: string): Promise<void>;
     /** Run queued actions one at a time, whenever she's free. */
     tick(): void;
+    private run;
 }

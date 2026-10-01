@@ -109,7 +109,20 @@ window.jaylee = {
 };
 
 // ---------- Chat ----------
-const chat = new Chat(game, $('#chat-log'), $<HTMLFormElement>('#chat-form'), $<HTMLInputElement>('#chat-input'));
+// Habits she learns in chat are remembered in this browser.
+const TRAITS_KEY = 'jaylee:traits';
+try {
+  const saved = JSON.parse(localStorage.getItem(TRAITS_KEY) ?? 'null') as Record<string, unknown> | null;
+  const traits = game.brain.personality.traits;
+  if (saved) for (const k of Object.keys(traits) as (keyof typeof traits)[]) {
+    const v = saved[k];
+    if (typeof v === 'number' && v >= 0.1 && v <= 1) traits[k] = v;
+  }
+} catch { /* storage unavailable: start fresh */ }
+const saveTraits = (): void => {
+  try { localStorage.setItem(TRAITS_KEY, JSON.stringify(game.brain.personality.traits)); } catch { /* ignore */ }
+};
+const chat = new Chat(game, $('#chat-log'), $<HTMLFormElement>('#chat-form'), $<HTMLInputElement>('#chat-input'), saveTraits);
 
 // ---------- Layout & loop ----------
 let layoutKey = '';

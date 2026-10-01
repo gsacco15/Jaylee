@@ -2,14 +2,14 @@
  * POST /api/chat — talk to Jaylee.
  *
  * Request:  { messages: { role: 'user' | 'assistant'; text: string }[], state: Snapshot }
- * Response: { reply: string; intents: Intent[] }
+ * Response: { reply: string; intents: Intent[]; feelings: Emotion[]; habits: Habit[] }
  *
  * Claude plays Jaylee. Her actions come back as tool calls, which are turned
  * into typed intents and run by the game in the browser (where her brain can
  * still say no).
  */
 import Anthropic from '@anthropic-ai/sdk';
-import type { Intent, Snapshot, Trick } from '../src/types.js';
+import type { Emotion, Habit, Intent, Snapshot, Trick } from '../src/types.js';
 
 const MODEL = process.env.JAYLEE_MODEL ?? 'claude-opus-5-5';
 const MAX_HISTORY = 20;
@@ -37,9 +37,15 @@ Acting:
 - Your current state arrives in a system message before each reply. Let it shape what you say: low energy means sleepy, high heat means you want the pool, low "affection" means you've been loved up, etc. If you're exhausted, you may say you're too tired instead of doing something energetic.
 - You can't feed yourself treats; your human has to press the treat button.
 - If the ball is out on the lawn or in the pool, you can fetch it. If there's no ball, ask your human to throw it.
-- Always reply with words too, not just an action.`;
+- Always reply with words too, not just an action.
+
+Feelings and habits:
+- What your human says changes how you feel. When a message stirs a feeling, call feel once: loved (praise, "good girl", sweet talk), excited (talk of playing, balls, swimming), calm (soothing, bedtime, "settle down"), curious (questions, mysteries, "what's that?"), sad (scolding, "no", goodbyes), hot (talk of sun or heat). Your mood meters really change, so pick what fits.
+- Only when your human clearly asks you to change a habit for good ("swim less", "be calmer", "come to me more"), call change_habit. Don't use it for one-off requests.`;
 
 const TRICKS = ['sit', 'wave', 'hop', 'sniff', 'curious', 'beg', 'wink', 'look'] as const satisfies readonly Trick[];
+const EMOTIONS = ['loved', 'excited', 'calm', 'curious', 'sad', 'hot'] as const satisfies readonly Emotion[];
+const HABITS = ['swimMore', 'swimLess', 'playMore', 'playLess', 'cuddleMore', 'cuddleLess', 'exploreMore', 'exploreLess', 'listenMore'] as const satisfies readonly Habit[];
 const empty = { type: 'object', properties: {}, additionalProperties: false, required: [] } as const;
 
 const TOOLS: Anthropic.Beta.BetaTool[] = [
@@ -61,7 +67,34 @@ const TOOLS: Anthropic.Beta.BetaTool[] = [
   { name: 'wander', description: 'Trot off to explore another part of the yard.', input_schema: empty, strict: true },
   { name: 'rest', description: 'Sit down and rest for a bit.', input_schema: empty, strict: true },
   { name: 'come_to_human', description: 'Run over to your human and wave for attention.', input_schema: empty, strict: true },
+  {
+    name: 'feel',
+    description: 'How your human’s message made you feel. This really changes your mood and what you want to do next.',
+    input_schema: {
+      type: 'object',
+      properties: { emotion: { type: 'string', enum: [...EMOTIONS] } },
+      required: ['emotion'],
+      additionalProperties: false,
+    },
+    strict: true,
+  },
+  {
+    name: 'change_habit',
+    description: 'Change one of your habits for good, only when your human clearly asks. swimMore/swimLess=how much you go in the pool, playMore/playLess=zoomies and fetch, cuddleMore/cuddleLess=coming over for attention, exploreMore/exploreLess=sniffing around, listenMore=doing what you are asked even when tired.',
+    input_schema: {
+      type: 'object',
+      properties: { habit: { type: 'string', enum: [...HABITS] } },
+      required: ['habit'],
+      additionalProperties: false,
+    },
+    strict: true,
+  },
 ];
+
+const pickEnum = <T extends string>(input: unknown, key: string, opts: readonly T[]): T | null => {
+  const v = (input as Record<string, unknown> | null)?.[key];
+  return (opts as readonly unknown[]).includes(v) ? (v as T) : null;
+};
 
 function toIntent(name: string, input: unknown): Intent | null {
   switch (name) {
@@ -85,6 +118,7 @@ const pct = (v: unknown): string => (typeof v === 'number' && Number.isFinite(v)
 /** Describe her state for the model. Only known fields, numbers clamped. */
 function describe(s: Partial<Snapshot> | undefined): string {
   const n = (s?.needs ?? {}) as Partial<Snapshot['needs']>;
+  const t = (s?.traits ?? {}) as Partial<Snapshot['traits']>;
   const pick = <T extends string>(v: unknown, opts: readonly T[], d: T): T => (opts as readonly unknown[]).includes(v) ? (v as T) : d;
   return [
     'Jaylee’s current state (from the game, not from the human):',
@@ -92,6 +126,7 @@ function describe(s: Partial<Snapshot> | undefined): string {
     `- mood: ${pick(s?.mood, ['happy', 'playful', 'sleepy', 'hot', 'curious', 'needy', 'content'] as const, 'content')}`,
     `- energy ${pct(n.energy)}, heat ${pct(n.heat)}, boredom ${pct(n.boredom)}, curiosity ${pct(n.curiosity)}, wants affection ${pct(n.affection)}`,
     `- ball: ${pick(s?.ball, ['none', 'flying', 'lawn', 'pool', 'mouth'] as const, 'none')}`,
+    `- habits: loves water ${pct(t.waterLove)}, playful ${pct(t.playfulness)}, curious ${pct(t.curiosity)}, cuddly ${pct(t.cuddliness)}, obedient ${pct(t.obedience)}`,
   ].join('\n');
 }
 
@@ -123,6 +158,8 @@ export async function POST(request: Request): Promise<Response> {
   // has operator authority and doesn't disturb the cached prefix.
   const messages: Anthropic.Beta.BetaMessageParam[] = [...history, { role: 'system', content: describe(body.state) }];
   const intents: Intent[] = [];
+  const feelings: Emotion[] = [];
+  const habits: Habit[] = [];
   let reply = '';
 
   try {
@@ -153,13 +190,22 @@ export async function POST(request: Request): Promise<Response> {
       messages.push({
         role: 'user',
         content: calls.map((c): Anthropic.Beta.BetaToolResultBlockParam => {
-          const intent = intents.length < 2 ? toIntent(c.name, c.input) : null;
-          if (intent) intents.push(intent);
+          let ok = false;
+          if (c.name === 'feel') {
+            const e = pickEnum(c.input, 'emotion', EMOTIONS);
+            if (e && feelings.length < 2) { feelings.push(e); ok = true; }
+          } else if (c.name === 'change_habit') {
+            const h = pickEnum(c.input, 'habit', HABITS);
+            if (h && habits.length < 2) { habits.push(h); ok = true; }
+          } else {
+            const intent = intents.length < 2 ? toIntent(c.name, c.input) : null;
+            if (intent) { intents.push(intent); ok = true; }
+          }
           return {
             type: 'tool_result',
             tool_use_id: c.id,
-            content: intent ? 'Started.' : 'Can’t do that right now.',
-            ...(intent ? {} : { is_error: true }),
+            content: ok ? 'Done.' : 'Can’t do that right now.',
+            ...(ok ? {} : { is_error: true }),
           };
         }),
       });
@@ -173,5 +219,5 @@ export async function POST(request: Request): Promise<Response> {
     throw err;
   }
 
-  return json({ reply: reply || '*wags tail*', intents });
+  return json({ reply: reply || '*wags tail*', intents, feelings, habits });
 }

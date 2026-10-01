@@ -96,6 +96,7 @@ export class Game {
             wet: this.wet > 0 || this.medium === 'water',
             ball: this.ballWhere(),
             stats: { ...this.stats },
+            traits: { ...this.brain.personality.traits },
         };
     }
     /** Ask Jaylee to do something. She may say no. */
@@ -144,6 +145,21 @@ export class Game {
         this.pending = null;
         this.current = null;
         this.idleFor = 0;
+    }
+    /** Someone talked to her in chat: she pauses and listens. */
+    hear() {
+        this.feel({ type: 'talkedTo' });
+        this.nextThink = Math.max(this.nextThink, this.idleFor + 8);
+        if (!this.busy && this.medium === 'land') {
+            this.current = null;
+            this.queue = [{ type: 'anim', anim: 'curious' }];
+        }
+    }
+    /** A feeling from chat. */
+    sense(emotion) {
+        this.feel({ type: 'feeling', emotion });
+        if (emotion === 'loved')
+            this.fx.push({ type: 'hearts', at: { ...this.pos }, n: 4 });
     }
     pet() {
         this.stats.pets++;
