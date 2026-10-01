@@ -67,15 +67,16 @@ export interface SpriteSet {
 export const JAYLEE_SPRITES: SpriteSet = { sheets: SHEETS, rows: ROWS };
 
 /**
- * Helga: assets/helga-sprites.webp, same 8 × 11 layout as Jaylee's main sheet.
- * No swim sheet yet, so in the pool Helga paddles with the run rows (cut at the waterline).
+ * Helga: assets/helga-sprites.webp (same 8 × 11 layout as Jaylee's main sheet)
+ * and assets/helga-swim.webp (1536×416, 8 × 2 cells of 192×208: paddling → and ←).
  */
 const helgaMain: SheetInfo = { src: '/assets/helga-sprites.webp', cellW: 1343 / 8, cellH: 2000 / 11 };
+const helgaSwim: SheetInfo = { src: '/assets/helga-swim.webp', cellW: 192, cellH: 208 };
 const helga = (row: number, frames: number, feet: number, directional = false, mouth: readonly [number, number] = [28, 96]): RowInfo =>
   ({ sheet: 'main', row, frames, feet, directional, scale: 1, sink: 46, mouth });
 
 export const HELGA_SPRITES: SpriteSet = {
-  sheets: { main: helgaMain, swim: helgaMain },
+  sheets: { main: helgaMain, swim: helgaSwim },
   rows: {
     sit:     helga(0, 6, 173),
     runR:    helga(1, 8, 354, true, [42, 66]),
@@ -88,8 +89,8 @@ export const HELGA_SPRITES: SpriteSet = {
     wink:    helga(8, 6, 1627),
     lookR:   helga(9, 8, 1810),
     lookL:   helga(10, 8, 1992),
-    swimR:   { ...helga(1, 8, 354, true, [42, 66]), sink: 50 },
-    swimL:   { ...helga(2, 8, 536, true, [42, 66]), sink: 50 },
+    swimR:   { sheet: 'swim', row: 0, frames: 8, feet: 197, directional: true, scale: 0.85, sink: 34, mouth: [40, 92] },
+    swimL:   { sheet: 'swim', row: 1, frames: 8, feet: 405, directional: true, scale: 0.85, sink: 34, mouth: [40, 92] },
   },
 };
 

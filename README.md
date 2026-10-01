@@ -64,7 +64,7 @@ The **"I'm …" picker** in the chat (Gabby, Shannah, or a guest) tells the dogs
 - **Character card** (`CARDS` in `api/chat.ts`): pronouns, looks, personality, loves, dislikes, quirks, voice, and how they are with the other dog.
 - **Sprites** (`src/sprites.ts`): a `SpriteSet` must provide every row (`sit`, `runR`, `runL`, `wave`, `hop`, `sniff`, `curious`, `beg`, `wink`, `lookR`, `lookL`, `swimR`, `swimL`). Give the new sheets and rows their own set and point the dog's profile at it.
 
-Helga's art is `public/assets/helga-sprites.webp` (same 8 × 11 layout as Jaylee's main sheet, 73 frames). There's no Helga swim sheet yet, so in the pool Helga paddles with the run rows, cut at the waterline. Add a swim sheet later and point `swimR`/`swimL` in `HELGA_SPRITES` at it. Helga's character card and personality numbers are still placeholders.
+Helga's art is `public/assets/helga-sprites.webp` (same 8 × 11 layout as Jaylee's main sheet, 73 frames). Helga's swim frames are `public/assets/helga-swim.webp` (1536×416, 8 × 2 cells of 192×208: paddling right, then left). Helga's character card and personality numbers are still placeholders.
 
 ## How she works
 
