@@ -16,11 +16,16 @@
     <div class="brand">
       <span class="collar" aria-hidden="true"></span>
       <div>
-        <h1>Jaylee's Playground</h1>
-        <p class="sub">Feeling <strong id="mood">Happy</strong></p>
+        <h1 id="title">Jaylee's Playground</h1>
+        <p class="sub"><span id="mood-who">Jaylee</span> is feeling <strong id="mood">Happy</strong></p>
       </div>
     </div>
-    <div class="meters" aria-label="How Jaylee is feeling">
+    <div class="dog-switch" role="radiogroup" aria-label="Which dogs are in the yard">
+      <button type="button" role="radio" data-mode="jaylee" aria-checked="true">Jaylee</button>
+      <button type="button" role="radio" data-mode="hegla" aria-checked="false">Hegla</button>
+      <button type="button" role="radio" data-mode="both" aria-checked="false">Both</button>
+    </div>
+    <div class="meters" aria-label="How the selected dog is feeling">
       <div class="meter" id="m-energy" style="--v:.8"><span>Energy</span><i></i></div>
       <div class="meter" id="m-happy" style="--v:.8"><span>Happiness</span><i></i></div>
       <div class="meter cool" id="m-cool" style="--v:.6"><span>Cool</span><i></i></div>
@@ -28,17 +33,19 @@
   </header>
 
   <main class="layout">
-    <section class="stage-wrap" aria-label="Jaylee's playground">
-      <canvas id="stage" role="img" aria-label="Jaylee playing in her backyard with a pool"></canvas>
-      <div class="status" id="status" aria-live="polite">Hi! I'm Jaylee</div>
-      <p class="hint">Tap the lawn to call her · tap the pool to swim · tap Jaylee to pet</p>
+    <section class="stage-wrap" aria-label="The playground">
+      <canvas id="stage" role="img" aria-label="Dogs playing in a backyard with a pool"></canvas>
+      <div class="status" id="status" aria-live="polite">Hi!</div>
+      <p class="hint">Tap the lawn to call · tap the pool to swim · tap a dog to pet (and pick them)</p>
     </section>
 
-    <section class="controls" aria-label="Play with Jaylee">
+    <section class="controls" aria-label="Play">
       <div class="group">
         <button class="btn primary" data-act="ball">Throw ball</button>
         <button class="btn primary" data-act="treat">Give treat</button>
         <button class="btn primary" data-act="swim">Go swim</button>
+        <button class="btn primary pair" data-act="play" data-pair hidden>Play together</button>
+        <button class="btn pair" data-act="greet" data-pair hidden>Say hi to friend</button>
       </div>
       <div class="group">
         <button class="btn" data-act="sit">Sit</button>
@@ -51,21 +58,21 @@
       <label class="toggle">
         <input type="checkbox" id="roam" checked />
         <span class="track" aria-hidden="true"></span>
-        Let her decide
+        Let them decide
       </label>
     </section>
 
-    <section class="chat" aria-label="Chat with Jaylee">
+    <section class="chat" aria-label="Chat with the dogs">
       <header class="chat-head">
         <span class="collar small" aria-hidden="true"></span>
         <div>
-          <h2>Talk to Jaylee</h2>
-          <p>She'll answer, and might do what you ask</p>
+          <h2 id="chat-title">Talk to Jaylee</h2>
+          <p>They'll answer, and might do what you ask</p>
         </div>
       </header>
       <ol class="chat-log" id="chat-log" aria-live="polite"></ol>
       <form class="chat-form" id="chat-form" autocomplete="off">
-        <input id="chat-input" name="message" maxlength="500" placeholder="Say something to Jaylee…" aria-label="Message to Jaylee" />
+        <input id="chat-input" name="message" maxlength="500" placeholder="Say something…" aria-label="Message to the dogs" />
         <button class="btn primary" type="submit">Send</button>
       </form>
     </section>

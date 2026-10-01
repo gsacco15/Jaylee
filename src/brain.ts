@@ -8,13 +8,13 @@
  * worn out.
  */
 import type {
-  Activity, Decision, Emotion, Habit, Intent, IntentKind, Medium, Mood, Needs, Personality, Traits, Trick, WorldEvent,
+  Activity, Decision, Source, Emotion, Habit, Intent, IntentKind, Medium, Mood, Needs, Personality, Traits, Trick, WorldEvent,
 } from './types.js';
 import { clamp } from './world.js';
 
 export const JAYLEE: Personality = {
   name: 'Jaylee',
-  traits: { waterLove: 0.95, playfulness: 0.85, curiosity: 0.7, cuddliness: 0.8, obedience: 0.8 },
+  traits: { waterLove: 0.95, playfulness: 0.85, curiosity: 0.7, cuddliness: 0.8, obedience: 0.8, sociability: 0.85 },
 };
 
 /** What the brain needs to know about the world to choose well. */
@@ -23,6 +23,8 @@ export interface BrainContext {
   ball: 'none' | 'flying' | 'lawn' | 'pool' | 'mouth';
   /** Seconds since she last entered the water (0 on land). */
   timeInWater: number;
+  /** The other dog, if both are in the yard. */
+  friend: { medium: Medium; distance: number; busy: boolean } | null;
 }
 
 export interface Option {
@@ -41,6 +43,9 @@ const LINES: Readonly<Record<IntentKind, readonly string[]>> = {
   rest: ['Taking a breather', 'Sitting pretty', 'Just gonna chill'],
   seekAttention: ['Pet me pls?', 'Hi! Hi! Notice me!', 'Got any love for me?'],
   eatTreat: ['Treat?! Yes please!', 'Nom nom nom', 'Best. Day. Ever.'],
+  playWith: ['Chase me! No, I chase YOU!', 'Tag, you’re it!', 'Play with meee!'],
+  greet: ['Hiii friend!', 'Sniff hello!', 'Oh it’s you!'],
+  joinFriend: ['Wait for me!', 'Coming with you!', 'Me too, me too!'],
 };
 
 const TRICK_LINES: Readonly<Record<Trick, readonly string[]>> = {
@@ -55,7 +60,7 @@ const TRICK_LINES: Readonly<Record<Trick, readonly string[]>> = {
 };
 
 /** Intents that need energy; she can turn these down when she's exhausted. */
-const ENERGETIC: ReadonlySet<IntentKind> = new Set(['zoomies', 'fetch', 'swim']);
+const ENERGETIC: ReadonlySet<IntentKind> = new Set(['zoomies', 'fetch', 'swim', 'playWith']);
 
 const HABITS: Readonly<Record<Habit, readonly [keyof Traits, 1 | -1]>> = {
   swimMore: ['waterLove', 1], swimLess: ['waterLove', -1],
@@ -63,6 +68,7 @@ const HABITS: Readonly<Record<Habit, readonly [keyof Traits, 1 | -1]>> = {
   cuddleMore: ['cuddliness', 1], cuddleLess: ['cuddliness', -1],
   exploreMore: ['curiosity', 1], exploreLess: ['curiosity', -1],
   listenMore: ['obedience', 1],
+  friendlier: ['sociability', 1], moreIndependent: ['sociability', -1],
 };
 
 /** Chat feelings push her needs, which changes what she chooses next. */
@@ -81,7 +87,7 @@ function applyEmotion(n: Needs, e: Emotion): void {
 export const intentKey = (i: Intent): string => (i.kind === 'trick' ? `trick:${i.trick}` : i.kind);
 
 export class Brain {
-  readonly needs: Needs = { energy: 0.85, boredom: 0.35, heat: 0.35, curiosity: 0.4, affection: 0.3 };
+  readonly needs: Needs = { energy: 0.85, boredom: 0.35, heat: 0.35, curiosity: 0.4, affection: 0.3, social: 0.3 };
   private readonly cooldowns = new Map<string, number>();
 
   readonly personality: Personality;
@@ -105,7 +111,7 @@ export class Brain {
   }
 
   /** Needs drift every frame based on what the body is doing. */
-  tick(dt: number, activity: Activity, medium: Medium): void {
+  tick(dt: number, activity: Activity, medium: Medium, friendAround = false): void {
     const n = this.needs, t = this.personality.traits;
     const rate: Record<Activity, Partial<Needs>> = {
       idle:     { energy: +0.02,  boredom: +0.014 * t.playfulness, heat: +0.004 },
@@ -121,6 +127,7 @@ export class Brain {
     n.heat = clamp(n.heat + (r.heat ?? 0) * dt + (medium === 'water' ? -0.01 * dt : 0), 0, 1);
     n.curiosity = clamp(n.curiosity + (medium === 'land' ? 0.012 * t.curiosity : 0.003) * dt, 0, 1);
     n.affection = clamp(n.affection + 0.007 * t.cuddliness * dt, 0, 1);
+    n.social = clamp(n.social + (friendAround ? 0.014 * t.sociability : -0.01) * dt, 0, 1);
     for (const [k, v] of this.cooldowns) {
       if (v - dt <= 0) this.cooldowns.delete(k); else this.cooldowns.set(k, v - dt);
     }
@@ -137,6 +144,7 @@ export class Brain {
       case 'ballThrown': n.boredom = clamp(n.boredom + 0.1, 0, 1); break;
       case 'talkedTo': n.affection = clamp(n.affection - 0.08, 0, 1); break;
       case 'feeling': applyEmotion(n, e.emotion); break;
+      case 'playedWithFriend': n.social = clamp(n.social - 0.55, 0, 1); n.boredom = clamp(n.boredom - 0.25, 0, 1); break;
       case 'ballLanded': case 'leftWater': break;
     }
   }
@@ -150,6 +158,7 @@ export class Brain {
       else n.boredom = clamp(n.boredom - 0.08, 0, 1);
     } else if (intent.kind === 'wander') n.curiosity = clamp(n.curiosity - 0.2, 0, 1);
     else if (intent.kind === 'zoomies') n.boredom = clamp(n.boredom - 0.4, 0, 1);
+    else if (intent.kind === 'greet' || intent.kind === 'joinFriend') n.social = clamp(n.social - 0.2, 0, 1);
   }
 
   get happiness(): number {
@@ -193,6 +202,18 @@ export class Brain {
         add({ kind: 'trick', trick }, 0.05 + n.boredom * 0.12 * (trick === 'hop' ? n.energy : 1));
       }
     }
+    const f = ctx.friend;
+    if (f) {
+      // Playing together beats almost everything when the urge is strong.
+      if (ctx.medium === 'land' && f.medium === 'land' && !f.busy) {
+        add({ kind: 'playWith' }, Math.pow(n.social, 1.2) * t.sociability * n.energy * 1.9 * awake);
+      }
+      if (f.distance > 0.12) add({ kind: 'greet' }, 0.04 + n.social * t.sociability * 0.5);
+      if (f.medium !== ctx.medium && f.distance > 0.1) {
+        const pull = f.medium === 'water' ? t.waterLove : 1 - n.heat;
+        add({ kind: 'joinFriend' }, n.social * t.sociability * pull * 0.9 * awake);
+      }
+    }
     if (ctx.ball === 'lawn' || ctx.ball === 'pool') {
       const wet = ctx.ball === 'pool' ? 0.6 + t.waterLove * 0.5 : 1;
       add({ kind: 'fetch' }, (n.boredom * t.playfulness * n.energy * 1.4 + 0.08) * wet * awake);
@@ -215,9 +236,13 @@ export class Brain {
   }
 
   /** Should she do what she's asked? Returns her answer either way. */
-  consider(intent: Intent, source: 'player' | 'self' | 'chat', ctx: BrainContext): Decision {
+  consider(intent: Intent, source: Source, ctx: BrainContext): Decision {
     const n = this.needs, t = this.personality.traits;
-    if (source !== 'self') {
+    if (source === 'friend') {
+      // An invitation from the other dog: up to her mood and how social she is.
+      const keen = n.energy > 0.2 && this.rng() < 0.35 + t.sociability * 0.4 + n.social * 0.3;
+      if (!keen) return { accept: false, line: n.energy <= 0.2 ? 'Too tired to play…' : 'Not now, buddy' };
+    } else if (source !== 'self') {
       if (ENERGETIC.has(intent.kind) && n.energy < 0.12 && this.rng() > t.obedience * 0.3) {
         return { accept: false, line: 'Too pooped… maybe a treat?' };
       }

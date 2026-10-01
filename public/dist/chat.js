@@ -1,18 +1,19 @@
 const EMOTIONS = ['loved', 'excited', 'calm', 'curious', 'sad', 'hot'];
 const FEELING_NOTE = {
-    loved: 'Jaylee feels loved', excited: 'Jaylee is all wound up', calm: 'Jaylee settles down',
-    curious: 'Jaylee\u2019s ears perk up', sad: 'Jaylee\u2019s ears droop', hot: 'Jaylee feels the heat',
+    loved: (n) => `${n} feels loved`, excited: (n) => `${n} is all wound up`, calm: (n) => `${n} settles down`,
+    curious: (n) => `${n}’s ears perk up`, sad: (n) => `${n}’s ears droop`, hot: (n) => `${n} feels the heat`,
 };
 const HABIT_NOTE = {
-    swimMore: 'New habit: swims more often', swimLess: 'New habit: swims less often',
-    playMore: 'New habit: more playful', playLess: 'New habit: calmer',
-    cuddleMore: 'New habit: comes to you more', cuddleLess: 'New habit: more independent',
-    exploreMore: 'New habit: explores more', exploreLess: 'New habit: explores less',
-    listenMore: 'New habit: listens better',
+    swimMore: 'swims more often', swimLess: 'swims less often',
+    playMore: 'more playful', playLess: 'calmer',
+    cuddleMore: 'comes to you more', cuddleLess: 'more independent',
+    exploreMore: 'explores more', exploreLess: 'explores less',
+    listenMore: 'listens better',
+    friendlier: 'plays with friends more', moreIndependent: 'happier on their own',
 };
-const pickList = (v, opts) => Array.isArray(v) ? v.filter((x) => opts.includes(x)).slice(0, 2) : [];
+const HABITS = Object.keys(HABIT_NOTE);
 const TRICKS = ['sit', 'wave', 'hop', 'sniff', 'curious', 'beg', 'wink', 'look'];
-const SIMPLE = ['swim', 'leavePool', 'fetch', 'zoomies', 'wander', 'rest', 'seekAttention'];
+const SIMPLE = ['swim', 'leavePool', 'fetch', 'zoomies', 'wander', 'rest', 'seekAttention', 'playWith', 'greet', 'joinFriend'];
 /** Only accept intents the chat is allowed to trigger. */
 export function parseIntent(v) {
     if (typeof v !== 'object' || v === null)
@@ -27,6 +28,17 @@ export function parseIntent(v) {
     }
     return null;
 }
+/** `[{ dog, <key> }]` entries for dogs in the yard, with a valid value. */
+function perDog(raw, key, game, parse) {
+    if (!Array.isArray(raw))
+        return [];
+    return raw.slice(0, 6).flatMap((e) => {
+        const dog = game.dogAt(String(e?.dog));
+        const v = parse(e?.[key]);
+        return dog && v !== null ? [[dog, v]] : [];
+    });
+}
+const oneOf = (opts) => (v) => (opts.includes(v) ? v : null);
 export class Chat {
     game;
     log;
@@ -38,7 +50,7 @@ export class Chat {
     queue = [];
     sending = false;
     constructor(game, log, form, input, 
-    /** Called after chat changes one of her habits (to save it). */
+    /** Called after chat changes a dog's habits (to save them). */
     onHabit = () => { }, endpoint = '/api/chat') {
         this.game = game;
         this.log = log;
@@ -50,12 +62,30 @@ export class Chat {
             e.preventDefault();
             void this.send(input.value);
         });
-        this.bubble('assistant', 'Hi hi hi! *wags tail* Wanna play?');
     }
-    bubble(role, text) {
+    /** The set of dogs in the yard changed. */
+    modeChanged(initial = false) {
+        if (initial) {
+            for (const d of this.game.dogs)
+                this.bubble('assistant', `${d.profile.lines.hello}! *wags tail*`, d);
+            return;
+        }
+        const dogs = this.game.dogs;
+        this.bubble('note', dogs.length > 1 ? `${dogs.map((d) => d.name).join(' & ')} are both in the yard` : `Just ${dogs[0].name} now`);
+        this.queue = [];
+    }
+    bubble(role, text, dog) {
         const li = document.createElement('li');
         li.className = `msg ${role}`;
-        li.textContent = text;
+        if (dog && role === 'assistant') {
+            li.style.setProperty('--accent', dog.profile.accent);
+            if (this.game.dogs.length > 1) {
+                const who = document.createElement('b');
+                who.textContent = dog.name;
+                li.append(who);
+            }
+        }
+        li.append(document.createTextNode(text));
         this.log.append(li);
         this.log.scrollTop = this.log.scrollHeight;
         return li;
@@ -69,43 +99,51 @@ export class Chat {
         this.form.classList.add('busy');
         this.bubble('user', text);
         this.history.push({ role: 'user', text });
-        this.game.hear();
+        for (const d of this.game.dogs)
+            d.hear();
         const typing = this.bubble('assistant', '•••');
         typing.classList.add('typing');
         try {
             const res = await fetch(this.endpoint, {
                 method: 'POST',
                 headers: { 'content-type': 'application/json' },
-                body: JSON.stringify({ messages: this.history.slice(-20), state: this.game.snapshot() }),
+                body: JSON.stringify({
+                    messages: this.history.slice(-20),
+                    dogs: this.game.dogs.map((d) => ({ id: d.id, state: d.snapshot() })),
+                }),
             });
             const data = (await res.json().catch(() => ({})));
             typing.remove();
-            if (!res.ok || typeof data.reply !== 'string') {
+            const replies = perDog(data.replies, 'text', this.game, (v) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, 600) : null));
+            if (!res.ok || !replies.length) {
                 this.history.pop();
-                this.bubble('note', typeof data.error === 'string' ? data.error : 'Jaylee couldn’t hear you. Try again?');
+                this.bubble('note', typeof data.error === 'string' ? data.error : 'Nobody heard you. Try again?');
                 return;
             }
-            this.history.push({ role: 'assistant', text: data.reply });
-            this.bubble('assistant', data.reply);
-            this.game.say(data.reply.replace(/\*[^*]+\*/g, '').trim() || data.reply);
-            for (const e of pickList(data.feelings, EMOTIONS)) {
-                this.game.sense(e);
-                this.bubble('note', FEELING_NOTE[e]);
+            this.history.push({ role: 'assistant', text: replies.map(([d, t]) => `${d.name}: ${t}`).join('\n') });
+            for (const [dog, t] of replies) {
+                this.bubble('assistant', t, dog);
+                dog.say(t.replace(/\*[^*]+\*/g, '').trim() || t);
             }
-            const habits = pickList(data.habits, Object.keys(HABIT_NOTE));
-            for (const h of habits) {
-                this.game.brain.adjustHabit(h);
-                this.bubble('note', HABIT_NOTE[h]);
+            for (const [dog, e] of perDog(data.feelings, 'emotion', this.game, oneOf(EMOTIONS))) {
+                dog.sense(e);
+                this.bubble('note', FEELING_NOTE[e](dog.name));
             }
-            if (habits.length)
-                this.onHabit();
-            const intents = Array.isArray(data.intents) ? data.intents.map(parseIntent).filter((i) => i !== null) : [];
-            // The first action interrupts whatever she was doing; a second one waits its turn.
-            const [first, second] = intents;
-            if (first)
-                this.run(first);
-            if (second)
-                this.queue.push(second);
+            for (const [dog, h] of perDog(data.habits, 'habit', this.game, oneOf(HABITS))) {
+                dog.brain.adjustHabit(h);
+                this.onHabit(dog);
+                this.bubble('note', `New habit for ${dog.name}: ${HABIT_NOTE[h]}`);
+            }
+            // Each dog's first action interrupts what they were doing; later ones wait their turn.
+            const started = new Set();
+            for (const [dog, intent] of perDog(data.actions, 'intent', this.game, parseIntent)) {
+                if (started.has(dog))
+                    this.queue.push([dog, intent]);
+                else {
+                    started.add(dog);
+                    this.run(dog, intent);
+                }
+            }
         }
         catch {
             typing.remove();
@@ -117,15 +155,17 @@ export class Chat {
             this.form.classList.remove('busy');
         }
     }
-    /** Run queued actions one at a time, whenever she's free. */
+    /** Run queued actions one at a time per dog, whenever that dog is free. */
     tick() {
-        if (!this.queue.length || this.game.busy)
+        const i = this.queue.findIndex(([dog]) => !dog.busy && this.game.dogs.includes(dog));
+        if (i < 0)
             return;
-        this.run(this.queue.shift());
+        const [dog, intent] = this.queue.splice(i, 1)[0];
+        this.run(dog, intent);
     }
-    run(intent) {
-        const d = this.game.request(intent, 'chat');
+    run(dog, intent) {
+        const d = dog.request(intent, 'chat');
         if (!d.accept)
-            this.bubble('note', `Jaylee: “${d.line}”`);
+            this.bubble('note', `${dog.name}: “${d.line}”`);
     }
 }

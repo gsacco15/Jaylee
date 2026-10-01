@@ -1,5 +1,3 @@
-/** Canvas renderer for the yard, pool, Jaylee, toys and effects. */
-import { ROWS, SHEETS } from './sprites.js';
 const rnd = (a, b) => a + Math.random() * (b - a);
 function seeded(seed) {
     return () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
@@ -7,19 +5,21 @@ function seeded(seed) {
 export class Renderer {
     canvas;
     game;
-    sprites;
     ctx;
     bg = document.createElement('canvas');
     dpr = 1;
     particles = [];
     ripples = [];
     marker = null;
-    /** Screen-space box around Jaylee, for tap-to-pet. */
-    dogBox = null;
-    constructor(canvas, game, sprites) {
+    /** Screen-space boxes around each dog (draw order), for tapping. */
+    dogBoxes = [];
+    tags = [];
+    images = new Map();
+    constructor(canvas, game, preload = []) {
         this.canvas = canvas;
         this.game = game;
-        this.sprites = sprites;
+        for (const img of preload)
+            this.images.set(img.getAttribute('src') ?? img.src, img);
         const ctx = canvas.getContext('2d');
         if (!ctx)
             throw new Error('Canvas 2D not supported');
@@ -256,26 +256,51 @@ export class Renderer {
         c.ellipse(p.x, p.y, w * s, w * s * 0.25, 0, 0, Math.PI * 2);
         c.fill();
     }
-    drawDog() {
-        const g = this.game, c = this.ctx;
-        const f = g.anim.frame, row = ROWS[f.key], sheet = SHEETS[row.sheet];
-        const p = this.p(g.pos), s = this.s(g.pos.y), rs = s * row.scale;
-        const sink = row.sink * g.submerged * rs; // screen px of her below the waterline
-        const bob = sink ? Math.sin(g.time * 3.2) * 2.2 * s : 0;
+    /** Image cache keyed by sheet src, shared by every dog using that art. */
+    image(src) {
+        let img = this.images.get(src);
+        if (!img) {
+            img = new Image();
+            img.src = src;
+            this.images.set(src, img);
+        }
+        return img;
+    }
+    drawDog(dog) {
+        const g = this.game, c = this.ctx, set = dog.profile.sprites;
+        const f = dog.anim.frame, row = set.rows[f.key], sheet = set.sheets[row.sheet];
+        const p = this.p(dog.pos), s = this.s(dog.pos.y) * (dog.profile.scale ?? 1), rs = s * row.scale;
+        const sink = row.sink * dog.submerged * rs; // screen px of the dog below the waterline
+        const bob = sink ? Math.sin(g.time * 3.2 + (dog.id === 'hegla' ? 1.7 : 0)) * 2.2 * s : 0;
+        const both = g.dogs.length > 1;
         if (!sink)
-            this.shadow(g.pos, 62);
+            this.shadow(dog.pos, 62);
+        if (both && dog === g.selected) {
+            // Selection ring in the dog's colour.
+            c.save();
+            c.strokeStyle = dog.profile.accent;
+            c.globalAlpha = 0.85;
+            c.lineWidth = 2.5;
+            c.beginPath();
+            c.ellipse(p.x, p.y + bob, 50 * s, 12 * s, 0, 0, Math.PI * 2);
+            c.stroke();
+            c.restore();
+        }
         const feet = (row.feet - row.row * sheet.cellH) * rs;
         const w = sheet.cellW * rs, h = sheet.cellH * rs;
+        const img = this.image(sheet.src);
         const draw = () => {
             c.save();
+            if (dog.profile.filter)
+                c.filter = dog.profile.filter;
             c.translate(p.x, p.y + sink + bob);
-            if (!row.directional && g.face < 0)
+            if (!row.directional && dog.face < 0)
                 c.scale(-1, 1);
-            c.drawImage(this.sprites[row.sheet], f.col * sheet.cellW, row.row * sheet.cellH, sheet.cellW, sheet.cellH, -w / 2, -feet, w, h);
+            c.drawImage(img, f.col * sheet.cellW, row.row * sheet.cellH, sheet.cellW, sheet.cellH, -w / 2, -feet, w, h);
             c.restore();
         };
         if (sink) {
-            // Below the waterline: faint, so her paddling paws show through the water.
+            // Below the waterline: faint, so paddling paws show through the water.
             c.save();
             c.beginPath();
             c.rect(0, p.y + bob, this.W, this.H);
@@ -293,7 +318,7 @@ export class Renderer {
         else
             draw();
         const top = p.y - feet + sink + bob;
-        this.dogBox = { x: p.x - w * 0.4, y: top + h * 0.05, w: w * 0.8, h: Math.max(20, p.y + bob - top) };
+        this.dogBoxes.push({ dog, x: p.x - w * 0.4, y: top + h * 0.05, w: w * 0.8, h: Math.max(20, p.y + bob - top) });
         if (sink) {
             c.save();
             c.strokeStyle = 'rgba(255,255,255,0.7)';
@@ -305,11 +330,47 @@ export class Renderer {
             c.fill();
             c.restore();
         }
-        if (g.ball.state === 'mouth') {
-            // Ball held up by her muzzle
-            const dir = row.directional ? (f.key.endsWith('R') ? 1 : -1) : g.face;
+        if (g.ball.state === 'mouth' && g.ball.holder === dog.id) {
+            // Ball held in the muzzle
+            const dir = row.directional ? (f.key.endsWith('R') ? 1 : -1) : dog.face;
             this.ballAt({ x: p.x + dir * row.mouth[0] * rs, y: p.y + sink - row.mouth[1] * rs + bob }, s, false);
         }
+        if (both)
+            this.tags.push({ x: p.x, y: top + h * 0.02 - 6, name: dog.name, color: dog.profile.accent, size: Math.max(11, Math.round(13 * Math.min(1.2, s * 1.3))) });
+    }
+    /** Name tags, drawn after all dogs and nudged apart so they never overlap. */
+    drawTags() {
+        const c = this.ctx;
+        c.save();
+        c.textAlign = 'center';
+        const placed = [];
+        for (const t of this.tags.sort((a, b) => b.y - a.y)) {
+            c.font = `600 ${t.size}px Outfit, system-ui, sans-serif`;
+            const w = c.measureText(t.name).width + 14;
+            let y = t.y;
+            for (const o of placed) {
+                if (t.x - w / 2 < o.x1 && t.x + w / 2 > o.x0 && Math.abs(y - o.y) < 22)
+                    y = o.y - 24;
+            }
+            placed.push({ x0: t.x - w / 2, x1: t.x + w / 2, y });
+            c.fillStyle = 'rgba(255,250,244,.88)';
+            c.beginPath();
+            c.roundRect(t.x - w / 2, y - 15, w, 20, 10);
+            c.fill();
+            c.fillStyle = t.color;
+            c.fillText(t.name, t.x, y);
+        }
+        c.restore();
+        this.tags = [];
+    }
+    /** The dog under a screen point, front-most first. */
+    dogAt(x, y) {
+        for (let i = this.dogBoxes.length - 1; i >= 0; i--) {
+            const b = this.dogBoxes[i];
+            if (x > b.x && x < b.x + b.w && y > b.y && y < b.y + b.h)
+                return b.dog;
+        }
+        return null;
     }
     ballAt(sp, s, floating) {
         const c = this.ctx, r = 11 * Math.max(s, 0.55);
@@ -422,12 +483,14 @@ export class Renderer {
         this.drawClouds();
         this.drawPool();
         const g = this.game;
-        const items = [{ y: g.pos.y, draw: () => this.drawDog() }];
+        this.dogBoxes = [];
+        const items = g.dogs.map((d) => ({ y: d.pos.y, draw: () => this.drawDog(d) }));
         if (g.ball.state === 'rest' || g.ball.state === 'flying')
             items.push({ y: g.ball.pos.y, draw: () => this.drawBall() });
         if (g.treat.visible)
             items.push({ y: g.treat.pos.y, draw: () => this.drawTreat() });
         items.sort((a, b) => a.y - b.y).forEach((i) => i.draw());
+        this.drawTags();
         this.drawFx();
     }
 }

@@ -1,11 +1,11 @@
 /**
- * Game: Jaylee's body (movement + animation), the ball and treats,
- * and the glue that runs intents through her brain.
+ * Game: the shared world — yard, camera, ball, treats, effects — and the
+ * dogs in it. One dog or both, depending on the mode.
  */
-import { AnimPlayer } from './sprites.js';
-import { Brain, type BrainContext } from './brain.js';
+import { Dog } from './dog.js';
+import { type DogId } from './dogs.js';
 import { Camera, Yard } from './world.js';
-import type { Activity, Decision, Emotion, Intent, Medium, Snapshot, Source, Stats, Vec, WorldEvent } from './types.js';
+import type { Decision, Intent, Snapshot, Source, Vec, WorldEvent } from './types.js';
 /** Visual effects requested by the simulation; the renderer draws them. */
 export type Fx = {
     type: 'splash';
@@ -29,82 +29,69 @@ export interface Ball {
     from: Vec;
     to: Vec;
     t: number;
+    holder: DogId | null;
 }
 export interface Treat {
     pos: Vec;
     visible: boolean;
 }
-export type GameListener = (e: {
+export type Mode = DogId | 'both';
+export type GameEvent = {
     type: 'say';
+    dog: DogId;
     line: string;
 } | {
     type: 'decision';
+    dog: DogId;
     intent: Intent;
     source: Source;
     decision: Decision;
-} | WorldEvent) => void;
+} | {
+    type: 'mode';
+    mode: Mode;
+} | {
+    type: 'select';
+    dog: DogId;
+} | (WorldEvent & {
+    dog: DogId;
+});
+export type GameListener = (e: GameEvent) => void;
 export declare class Game {
     readonly yard: Yard;
     readonly cam: Camera;
-    readonly brain: Brain;
-    readonly anim: AnimPlayer;
     readonly fx: Fx[];
-    readonly stats: Stats;
-    pos: Vec;
-    medium: Medium;
-    face: 1 | -1;
-    wet: number;
+    /** Every dog, whether or not they're in the yard right now. */
+    readonly roster: Readonly<Record<DogId, Dog>>;
+    mode: Mode;
     autonomy: boolean;
-    line: string;
+    time: number;
     ball: Ball;
     treat: Treat;
-    time: number;
-    private queue;
-    private cur;
-    private pending;
-    private current;
-    private idleFor;
-    private nextThink;
-    private waterSince;
-    private rippleT;
-    private dripT;
+    private selectedId;
     private listeners;
     constructor();
+    /** Dogs currently in the yard. */
+    get dogs(): Dog[];
+    /** The dog the buttons and meters are about. */
+    get selected(): Dog;
+    select(id: DogId): void;
+    setMode(mode: Mode): void;
+    friendOf(dog: Dog): Dog | null;
+    dogAt(id: string): Dog | null;
     on(fn: GameListener): () => void;
-    private emit;
-    say(line: string): void;
-    /** 0 = on land, 1 = swimming; in between while jumping in or out. */
-    get submerged(): number;
-    get busy(): boolean;
-    get activity(): Activity;
-    context(): BrainContext;
-    private ballWhere;
-    snapshot(): Snapshot;
-    /** Ask Jaylee to do something. She may say no. */
-    request(intent: Intent, source?: Source): Decision;
-    /** Player throws the ball; Jaylee decides whether to chase it. */
+    emit(e: GameEvent): void;
+    ballWhere(asSeenBy?: Dog): Snapshot['ball'];
+    ballHolder(): Dog | null;
+    /** Player throws the ball from the selected dog; everyone watches it fly. */
     throwBall(): void;
-    /** Someone talked to her in chat: she pauses and listens. */
-    hear(): void;
-    /** A feeling from chat. */
-    sense(emotion: Emotion): void;
-    pet(): void;
-    private feel;
-    private start;
-    private compile;
-    private pickUpBall;
-    private dropBall;
-    private eatTreat;
-    update(dt: number): void;
-    private idleLine;
-    private think;
-    private finished;
-    private lastThrowPending;
-    private begin;
-    private idleAnim;
-    private stepMove;
-    private stepJump;
+    /** First dog to reach the ball gets it. */
+    pickUpBall(dog: Dog): boolean;
+    dropBall(dog: Dog): void;
     private updateBall;
-    /** Keep her somewhere valid after the yard layout changes. */
+    placeTreat(at: Vec): void;
+    eatTreat(): boolean;
+    /** Two dogs just played: both feel it. */
+    played(a: Dog, b: Dog, hearts: number): void;
+    update(dt: number): void;
     relayout(dropPlans?: boolean): void;
 }

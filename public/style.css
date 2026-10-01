@@ -236,6 +236,36 @@ h1 { font-size: clamp(1.25rem, 3.6vw, 1.7rem); margin: 0; font-weight: 700; lett
   .chat { height: 440px; margin-top: 8px; }
 }
 
+/* Dog switcher */
+.dog-switch {
+  display: inline-flex;
+  padding: 4px;
+  gap: 2px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+.dog-switch button {
+  font: inherit;
+  font-weight: 500;
+  font-size: 0.9rem;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  padding: 7px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background .2s, color .2s;
+}
+.dog-switch button[aria-checked="true"] { background: var(--dog-accent, var(--pink)); color: #fff; }
+.dog-switch button:focus-visible { outline: 2px solid var(--pink); outline-offset: 2px; }
+.btn.pair[hidden] { display: none; }
+.sub strong { color: var(--dog-accent, var(--pink)); }
+.status { border-left: 4px solid var(--accent, var(--pink)); }
+.msg.assistant { border-left: 3px solid var(--accent, transparent); }
+.msg.assistant b { display: block; font-size: 0.75rem; color: var(--accent, var(--muted)); margin-bottom: 2px; }
+@media (max-width: 640px) { .dog-switch { order: -1; width: 100%; } .dog-switch button { flex: 1; } }
+
 footer { padding-top: 32px; padding-bottom: 32px; color: var(--muted); font-size: 0.85rem; text-align: center; }
 
 @media (max-width: 640px) {

@@ -1,2 +1,2 @@
-/** Shared types for Jaylee's brain, body and world. */
+/** Shared types for the dogs' brains, bodies and the world. */
 export {};

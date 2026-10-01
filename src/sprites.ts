@@ -6,7 +6,9 @@
 
 export type SheetId = 'main' | 'swim';
 
-export const SHEETS: Readonly<Record<SheetId, { src: string; cellW: number; cellH: number }>> = {
+export interface SheetInfo { readonly src: string; readonly cellW: number; readonly cellH: number }
+
+export const SHEETS: Readonly<Record<SheetId, SheetInfo>> = {
   main: { src: 'assets/jaylee-sprites.webp', cellW: 1343 / 8, cellH: 2000 / 11 },
   swim: { src: 'assets/jaylee-swim.webp', cellW: 250, cellH: 230 },
 };
@@ -55,6 +57,14 @@ export const ROWS: Readonly<Record<RowKey, RowInfo>> = {
   swimR:   { sheet: 'swim', row: 0, frames: 8, feet: 180, directional: true, scale: 0.66, sink: 62, mouth: [100, 85] },
   swimL:   { sheet: 'swim', row: 1, frames: 8, feet: 410, directional: true, scale: 0.66, sink: 62, mouth: [100, 85] },
 };
+
+/** A dog's full set of art. Every dog must provide every row, so animations work for all. */
+export interface SpriteSet {
+  readonly sheets: Readonly<Record<SheetId, SheetInfo>>;
+  readonly rows: Readonly<Record<RowKey, RowInfo>>;
+}
+
+export const JAYLEE_SPRITES: SpriteSet = { sheets: SHEETS, rows: ROWS };
 
 export interface Frame {
   readonly key: RowKey;

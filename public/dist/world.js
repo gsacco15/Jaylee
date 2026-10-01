@@ -1,3 +1,5 @@
+/** How much wider the ground looks at depth y (0 = horizon, 1 = front). */
+export const perspective = (y) => 0.82 + 0.26 * y;
 export const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 export const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 export const rand = (a, b) => a + Math.random() * (b - a);
@@ -9,8 +11,10 @@ export class Yard {
     /** Landscape screens put the pool to the right, portrait at the front. */
     layout(portrait) {
         this.pool = portrait
-            ? { x0: 0.14, x1: 0.86, y0: 0.56, y1: 0.86 }
-            : { x0: 0.57, x1: 0.9, y0: 0.3, y1: 0.76 };
+            ? { x0: 0.24, x1: 0.76, y0: 0.56, y1: 0.84 }
+            : { x0: 0.57, x1: 0.88, y0: 0.3, y1: 0.76 };
+        // Keep dogs fully on screen (narrow screens need a wider margin).
+        this.edge = portrait ? 0.14 : 0.05;
     }
     inPool(p, margin = 0) {
         const r = this.pool;
@@ -20,19 +24,24 @@ export class Yard {
         const r = this.pool;
         return { x: clamp(p.x, r.x0 + inset, r.x1 - inset), y: clamp(p.y, r.y0 + inset, r.y1 - inset) };
     }
+    /** Fraction of the screen width kept clear at each side, so dogs stay fully visible. */
+    edge = 0.05;
     clampToBounds(p) {
         const b = this.bounds;
-        return { x: clamp(p.x, b.x0, b.x1), y: clamp(p.y, b.y0, b.y1) };
+        const y = clamp(p.y, b.y0, b.y1);
+        // Perspective widens the ground toward the viewer, so the side limit depends on depth.
+        const half = (0.5 - this.edge) / perspective(y);
+        return { x: clamp(p.x, Math.max(b.x0, 0.5 - half), Math.min(b.x1, 0.5 + half)), y };
     }
     randomLand(near, spread = 1) {
         for (let i = 0; i < 60; i++) {
             const p = near
                 ? this.clampToBounds({ x: near.x + rand(-0.4, 0.4) * spread, y: near.y + rand(-0.3, 0.3) * spread })
-                : { x: rand(this.bounds.x0, this.bounds.x1), y: rand(this.bounds.y0 + 0.05, this.bounds.y1) };
+                : this.clampToBounds({ x: rand(this.bounds.x0, this.bounds.x1), y: rand(this.bounds.y0 + 0.05, this.bounds.y1) });
             if (!this.inPool(p, DECK + 0.02))
                 return p;
         }
-        return { x: this.bounds.x0 + 0.05, y: this.bounds.y1 - 0.05 };
+        return this.clampToBounds({ x: this.bounds.x0 + 0.05, y: this.bounds.y1 - 0.05 });
     }
     randomWater() {
         const r = this.pool;
@@ -137,7 +146,7 @@ export class Camera {
         this.H = h;
         this.HZ = h * (w < h ? 0.24 : 0.3);
     }
-    k(y) { return 0.82 + 0.26 * y; }
+    k(y) { return perspective(y); }
     project(p) {
         return { x: this.W / 2 + (p.x - 0.5) * this.W * this.k(p.y), y: this.HZ + p.y * (this.H - this.HZ) };
     }

@@ -1,27 +1,31 @@
-/** Chat with Jaylee: talks to /api/chat and feeds her chosen actions to the game. */
+/**
+ * Chat with the dogs: talks to /api/chat, shows each dog's reply, and feeds
+ * the actions, feelings and habit changes they chose back into the game.
+ */
 import type { Game } from './game.js';
+import type { Dog } from './dog.js';
 import type { Emotion, Habit, Intent, Trick } from './types.js';
 
 interface Msg { role: 'user' | 'assistant'; text: string }
-interface ChatResponse { reply?: unknown; intents?: unknown; feelings?: unknown; habits?: unknown; error?: unknown }
+interface ChatResponse { replies?: unknown; actions?: unknown; feelings?: unknown; habits?: unknown; error?: unknown }
 
 const EMOTIONS: readonly Emotion[] = ['loved', 'excited', 'calm', 'curious', 'sad', 'hot'];
-const FEELING_NOTE: Record<Emotion, string> = {
-  loved: 'Jaylee feels loved', excited: 'Jaylee is all wound up', calm: 'Jaylee settles down',
-  curious: 'Jaylee\u2019s ears perk up', sad: 'Jaylee\u2019s ears droop', hot: 'Jaylee feels the heat',
+const FEELING_NOTE: Record<Emotion, (n: string) => string> = {
+  loved: (n) => `${n} feels loved`, excited: (n) => `${n} is all wound up`, calm: (n) => `${n} settles down`,
+  curious: (n) => `${n}’s ears perk up`, sad: (n) => `${n}’s ears droop`, hot: (n) => `${n} feels the heat`,
 };
 const HABIT_NOTE: Record<Habit, string> = {
-  swimMore: 'New habit: swims more often', swimLess: 'New habit: swims less often',
-  playMore: 'New habit: more playful', playLess: 'New habit: calmer',
-  cuddleMore: 'New habit: comes to you more', cuddleLess: 'New habit: more independent',
-  exploreMore: 'New habit: explores more', exploreLess: 'New habit: explores less',
-  listenMore: 'New habit: listens better',
+  swimMore: 'swims more often', swimLess: 'swims less often',
+  playMore: 'more playful', playLess: 'calmer',
+  cuddleMore: 'comes to you more', cuddleLess: 'more independent',
+  exploreMore: 'explores more', exploreLess: 'explores less',
+  listenMore: 'listens better',
+  friendlier: 'plays with friends more', moreIndependent: 'happier on their own',
 };
-const pickList = <T extends string>(v: unknown, opts: readonly T[]): T[] =>
-  Array.isArray(v) ? v.filter((x): x is T => (opts as readonly unknown[]).includes(x)).slice(0, 2) : [];
+const HABITS = Object.keys(HABIT_NOTE) as Habit[];
 
 const TRICKS: readonly Trick[] = ['sit', 'wave', 'hop', 'sniff', 'curious', 'beg', 'wink', 'look'];
-const SIMPLE = ['swim', 'leavePool', 'fetch', 'zoomies', 'wander', 'rest', 'seekAttention'] as const;
+const SIMPLE = ['swim', 'leavePool', 'fetch', 'zoomies', 'wander', 'rest', 'seekAttention', 'playWith', 'greet', 'joinFriend'] as const;
 
 /** Only accept intents the chat is allowed to trigger. */
 export function parseIntent(v: unknown): Intent | null {
@@ -35,9 +39,20 @@ export function parseIntent(v: unknown): Intent | null {
   return null;
 }
 
+/** `[{ dog, <key> }]` entries for dogs in the yard, with a valid value. */
+function perDog<T>(raw: unknown, key: string, game: Game, parse: (v: unknown) => T | null): Array<[Dog, T]> {
+  if (!Array.isArray(raw)) return [];
+  return raw.slice(0, 6).flatMap((e): Array<[Dog, T]> => {
+    const dog = game.dogAt(String((e as { dog?: unknown })?.dog));
+    const v = parse((e as Record<string, unknown>)?.[key]);
+    return dog && v !== null ? [[dog, v]] : [];
+  });
+}
+const oneOf = <T extends string>(opts: readonly T[]) => (v: unknown): T | null => ((opts as readonly unknown[]).includes(v) ? (v as T) : null);
+
 export class Chat {
   private history: Msg[] = [];
-  private queue: Intent[] = [];
+  private queue: Array<[Dog, Intent]> = [];
   private sending = false;
 
   constructor(
@@ -45,21 +60,39 @@ export class Chat {
     private readonly log: HTMLElement,
     private readonly form: HTMLFormElement,
     private readonly input: HTMLInputElement,
-    /** Called after chat changes one of her habits (to save it). */
-    private readonly onHabit: () => void = () => {},
+    /** Called after chat changes a dog's habits (to save them). */
+    private readonly onHabit: (dog: Dog) => void = () => {},
     private readonly endpoint = '/api/chat',
   ) {
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       void this.send(input.value);
     });
-    this.bubble('assistant', 'Hi hi hi! *wags tail* Wanna play?');
   }
 
-  private bubble(role: Msg['role'] | 'note', text: string): HTMLElement {
+  /** The set of dogs in the yard changed. */
+  modeChanged(initial = false): void {
+    if (initial) {
+      for (const d of this.game.dogs) this.bubble('assistant', `${d.profile.lines.hello}! *wags tail*`, d);
+      return;
+    }
+    const dogs = this.game.dogs;
+    this.bubble('note', dogs.length > 1 ? `${dogs.map((d) => d.name).join(' & ')} are both in the yard` : `Just ${dogs[0]!.name} now`);
+    this.queue = [];
+  }
+
+  private bubble(role: Msg['role'] | 'note', text: string, dog?: Dog): HTMLElement {
     const li = document.createElement('li');
     li.className = `msg ${role}`;
-    li.textContent = text;
+    if (dog && role === 'assistant') {
+      li.style.setProperty('--accent', dog.profile.accent);
+      if (this.game.dogs.length > 1) {
+        const who = document.createElement('b');
+        who.textContent = dog.name;
+        li.append(who);
+      }
+    }
+    li.append(document.createTextNode(text));
     this.log.append(li);
     this.log.scrollTop = this.log.scrollHeight;
     return li;
@@ -73,7 +106,7 @@ export class Chat {
     this.form.classList.add('busy');
     this.bubble('user', text);
     this.history.push({ role: 'user', text });
-    this.game.hear();
+    for (const d of this.game.dogs) d.hear();
     const typing = this.bubble('assistant', '•••');
     typing.classList.add('typing');
 
@@ -81,33 +114,39 @@ export class Chat {
       const res = await fetch(this.endpoint, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ messages: this.history.slice(-20), state: this.game.snapshot() }),
+        body: JSON.stringify({
+          messages: this.history.slice(-20),
+          dogs: this.game.dogs.map((d) => ({ id: d.id, state: d.snapshot() })),
+        }),
       });
       const data = (await res.json().catch(() => ({}))) as ChatResponse;
       typing.remove();
-      if (!res.ok || typeof data.reply !== 'string') {
+      const replies = perDog(data.replies, 'text', this.game, (v) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, 600) : null));
+      if (!res.ok || !replies.length) {
         this.history.pop();
-        this.bubble('note', typeof data.error === 'string' ? data.error : 'Jaylee couldn’t hear you. Try again?');
+        this.bubble('note', typeof data.error === 'string' ? data.error : 'Nobody heard you. Try again?');
         return;
       }
-      this.history.push({ role: 'assistant', text: data.reply });
-      this.bubble('assistant', data.reply);
-      this.game.say(data.reply.replace(/\*[^*]+\*/g, '').trim() || data.reply);
-      for (const e of pickList(data.feelings, EMOTIONS)) {
-        this.game.sense(e);
-        this.bubble('note', FEELING_NOTE[e]);
+      this.history.push({ role: 'assistant', text: replies.map(([d, t]) => `${d.name}: ${t}`).join('\n') });
+      for (const [dog, t] of replies) {
+        this.bubble('assistant', t, dog);
+        dog.say(t.replace(/\*[^*]+\*/g, '').trim() || t);
       }
-      const habits = pickList(data.habits, Object.keys(HABIT_NOTE) as Habit[]);
-      for (const h of habits) {
-        this.game.brain.adjustHabit(h);
-        this.bubble('note', HABIT_NOTE[h]);
+      for (const [dog, e] of perDog(data.feelings, 'emotion', this.game, oneOf(EMOTIONS))) {
+        dog.sense(e);
+        this.bubble('note', FEELING_NOTE[e](dog.name));
       }
-      if (habits.length) this.onHabit();
-      const intents = Array.isArray(data.intents) ? data.intents.map(parseIntent).filter((i): i is Intent => i !== null) : [];
-      // The first action interrupts whatever she was doing; a second one waits its turn.
-      const [first, second] = intents;
-      if (first) this.run(first);
-      if (second) this.queue.push(second);
+      for (const [dog, h] of perDog(data.habits, 'habit', this.game, oneOf(HABITS))) {
+        dog.brain.adjustHabit(h);
+        this.onHabit(dog);
+        this.bubble('note', `New habit for ${dog.name}: ${HABIT_NOTE[h]}`);
+      }
+      // Each dog's first action interrupts what they were doing; later ones wait their turn.
+      const started = new Set<Dog>();
+      for (const [dog, intent] of perDog(data.actions, 'intent', this.game, parseIntent)) {
+        if (started.has(dog)) this.queue.push([dog, intent]);
+        else { started.add(dog); this.run(dog, intent); }
+      }
     } catch {
       typing.remove();
       this.history.pop();
@@ -118,14 +157,16 @@ export class Chat {
     }
   }
 
-  /** Run queued actions one at a time, whenever she's free. */
+  /** Run queued actions one at a time per dog, whenever that dog is free. */
   tick(): void {
-    if (!this.queue.length || this.game.busy) return;
-    this.run(this.queue.shift()!);
+    const i = this.queue.findIndex(([dog]) => !dog.busy && this.game.dogs.includes(dog));
+    if (i < 0) return;
+    const [dog, intent] = this.queue.splice(i, 1)[0]!;
+    this.run(dog, intent);
   }
 
-  private run(intent: Intent): void {
-    const d = this.game.request(intent, 'chat');
-    if (!d.accept) this.bubble('note', `Jaylee: “${d.line}”`);
+  private run(dog: Dog, intent: Intent): void {
+    const d = dog.request(intent, 'chat');
+    if (!d.accept) this.bubble('note', `${dog.name}: “${d.line}”`);
   }
 }

@@ -26,6 +26,7 @@ export const ROWS = {
     swimR: { sheet: 'swim', row: 0, frames: 8, feet: 180, directional: true, scale: 0.66, sink: 62, mouth: [100, 85] },
     swimL: { sheet: 'swim', row: 1, frames: 8, feet: 410, directional: true, scale: 0.66, sink: 62, mouth: [100, 85] },
 };
+export const JAYLEE_SPRITES = { sheets: SHEETS, rows: ROWS };
 const seq = (key, cols, dur) => cols.map((col, i) => ({ key, col, dur: typeof dur === 'number' ? dur : dur[i] ?? 0.15 }));
 const run8 = [0, 1, 2, 3, 4, 5, 6, 7];
 /** Animation recipes. Functions so idle holds can vary each time. */

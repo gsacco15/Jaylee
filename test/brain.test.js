@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { Brain } from '../public/dist/brain.js';
 import { Yard } from '../public/dist/world.js';
 
-const land = { medium: 'land', ball: 'none', timeInWater: 0 };
+const land = { medium: 'land', ball: 'none', timeInWater: 0, friend: null };
 const fixed = () => 0.5;
 
 test('a hot Jaylee wants the pool', () => {
@@ -81,4 +81,18 @@ test('habits learned in chat change her personality, within limits', () => {
   assert.ok(swim.score < 0.3);
   // The default personality is untouched.
   assert.equal(new Brain().personality.traits.waterLove, 0.95);
+});
+
+test('with a friend around she wants to play together', () => {
+  const b = new Brain(undefined, fixed);
+  Object.assign(b.needs, { social: 0.95, energy: 0.9, heat: 0.1, boredom: 0.3, curiosity: 0.1, affection: 0.1 });
+  const withFriend = { ...land, friend: { medium: 'land', distance: 0.3, busy: false } };
+  assert.equal(b.options(withFriend)[0].intent.kind, 'playWith');
+  assert.ok(!b.options(land).some((o) => o.intent.kind === 'playWith'), 'no play option when alone');
+  b.feel({ type: 'playedWithFriend' });
+  assert.ok(b.needs.social < 0.5);
+  // The social urge only builds when the friend is actually there.
+  const s0 = b.needs.social;
+  b.tick(10, 'idle', 'land', true);
+  assert.ok(b.needs.social > s0);
 });

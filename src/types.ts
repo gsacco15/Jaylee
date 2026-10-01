@@ -1,4 +1,4 @@
-/** Shared types for Jaylee's brain, body and world. */
+/** Shared types for the dogs' brains, bodies and the world. */
 
 export interface Vec {
   x: number;
@@ -25,12 +25,16 @@ export type Intent =
   | { kind: 'wander' }
   | { kind: 'rest' }
   | { kind: 'seekAttention' }
-  | { kind: 'eatTreat' };
+  | { kind: 'eatTreat' }
+  // With a friend in the yard:
+  | { kind: 'playWith' }    // play chase with the other dog
+  | { kind: 'greet' }       // trot over and sniff hello
+  | { kind: 'joinFriend' }; // go to wherever the other dog is (even the pool)
 
 export type IntentKind = Intent['kind'];
 
 /** Who asked for an intent. The brain treats them differently. */
-export type Source = 'player' | 'self' | 'chat';
+export type Source = 'player' | 'self' | 'chat' | 'friend';
 
 /** What her body is physically doing right now (drives need changes). */
 export type Activity = 'idle' | 'running' | 'swimming' | 'paddling' | 'trick' | 'eating';
@@ -45,6 +49,8 @@ export interface Needs {
   heat: number;
   curiosity: number;
   affection: number;
+  /** Wants to play with the other dog (only grows when one is around). */
+  social: number;
 }
 
 /** Personality: fixed weights that shape her choices, 0..1. */
@@ -54,6 +60,7 @@ export interface Traits {
   curiosity: number;
   cuddliness: number;
   obedience: number;
+  sociability: number;
 }
 
 export interface Personality {
@@ -78,6 +85,7 @@ export type WorldEvent =
   | { type: 'enteredWater' }
   | { type: 'leftWater' }
   | { type: 'talkedTo' }
+  | { type: 'playedWithFriend' }
   | { type: 'feeling'; emotion: Emotion };
 
 /** How something said in chat made her feel. Shifts her needs. */
@@ -86,10 +94,12 @@ export type Emotion = 'loved' | 'excited' | 'calm' | 'curious' | 'sad' | 'hot';
 /** Lasting habit changes her human can ask for in chat. Shifts her traits. */
 export type Habit =
   | 'swimMore' | 'swimLess' | 'playMore' | 'playLess'
-  | 'cuddleMore' | 'cuddleLess' | 'exploreMore' | 'exploreLess' | 'listenMore';
+  | 'cuddleMore' | 'cuddleLess' | 'exploreMore' | 'exploreLess' | 'listenMore'
+  | 'friendlier' | 'moreIndependent';
 
 /** Read-only view of Jaylee, safe to hand to UI or an AI model. */
 export interface Snapshot {
+  id: string;
   name: string;
   position: Vec;
   medium: Medium;
@@ -102,6 +112,8 @@ export interface Snapshot {
   ball: 'none' | 'flying' | 'lawn' | 'pool' | 'mouth';
   stats: Readonly<Stats>;
   traits: Readonly<Traits>;
+  /** The other dog, when both are in the yard. */
+  friend: { name: string; medium: Medium; activity: Activity; distance: number } | null;
 }
 
 export interface Stats {

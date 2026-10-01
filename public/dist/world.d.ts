@@ -9,6 +9,8 @@ export interface Rect {
     y0: number;
     y1: number;
 }
+/** How much wider the ground looks at depth y (0 = horizon, 1 = front). */
+export declare const perspective: (y: number) => number;
 export declare const clamp: (v: number, a: number, b: number) => number;
 export declare const dist: (a: Vec, b: Vec) => number;
 export declare const rand: (a: number, b: number) => number;
@@ -30,6 +32,8 @@ export declare class Yard {
     layout(portrait: boolean): void;
     inPool(p: Vec, margin?: number): boolean;
     clampToPool(p: Vec, inset?: number): Vec;
+    /** Fraction of the screen width kept clear at each side, so dogs stay fully visible. */
+    edge: number;
     clampToBounds(p: Vec): Vec;
     randomLand(near?: Vec, spread?: number): Vec;
     randomWater(): Vec;

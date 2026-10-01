@@ -1,25 +1,21 @@
-/** Canvas renderer for the yard, pool, Jaylee, toys and effects. */
-import { type SheetId } from './sprites.js';
+/** Canvas renderer for the yard, pool, dogs, toys and effects. */
 import type { Game } from './game.js';
+import type { Dog } from './dog.js';
 import type { Vec } from './types.js';
 export declare class Renderer {
     private readonly canvas;
     private readonly game;
-    private readonly sprites;
     private readonly ctx;
     private readonly bg;
     private dpr;
     private particles;
     private ripples;
     private marker;
-    /** Screen-space box around Jaylee, for tap-to-pet. */
-    dogBox: {
-        x: number;
-        y: number;
-        w: number;
-        h: number;
-    } | null;
-    constructor(canvas: HTMLCanvasElement, game: Game, sprites: Readonly<Record<SheetId, HTMLImageElement>>);
+    /** Screen-space boxes around each dog (draw order), for tapping. */
+    private dogBoxes;
+    private tags;
+    private readonly images;
+    constructor(canvas: HTMLCanvasElement, game: Game, preload?: readonly HTMLImageElement[]);
     private get W();
     private get H();
     private get HZ();
@@ -35,7 +31,13 @@ export declare class Renderer {
     private poolPath;
     private drawPool;
     private shadow;
+    /** Image cache keyed by sheet src, shared by every dog using that art. */
+    private image;
     private drawDog;
+    /** Name tags, drawn after all dogs and nudged apart so they never overlap. */
+    private drawTags;
+    /** The dog under a screen point, front-most first. */
+    dogAt(x: number, y: number): Dog | null;
     private ballAt;
     private drawBall;
     private drawTreat;

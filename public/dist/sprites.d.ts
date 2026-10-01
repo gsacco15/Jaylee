@@ -4,11 +4,12 @@
  * - swim: assets/jaylee-swim.webp, 2000×460 px, 8 × 2 cells (paddling, → and ←)
  */
 export type SheetId = 'main' | 'swim';
-export declare const SHEETS: Readonly<Record<SheetId, {
-    src: string;
-    cellW: number;
-    cellH: number;
-}>>;
+export interface SheetInfo {
+    readonly src: string;
+    readonly cellW: number;
+    readonly cellH: number;
+}
+export declare const SHEETS: Readonly<Record<SheetId, SheetInfo>>;
 /** Main-sheet px height of her sitting pose, used to size her on screen. */
 export declare const SIT_H = 170;
 export type RowKey = 'sit' | 'runR' | 'runL' | 'wave' | 'hop' | 'sniff' | 'curious' | 'beg' | 'wink' | 'lookR' | 'lookL' | 'swimR' | 'swimL';
@@ -29,6 +30,12 @@ export interface RowInfo {
     readonly mouth: readonly [number, number];
 }
 export declare const ROWS: Readonly<Record<RowKey, RowInfo>>;
+/** A dog's full set of art. Every dog must provide every row, so animations work for all. */
+export interface SpriteSet {
+    readonly sheets: Readonly<Record<SheetId, SheetInfo>>;
+    readonly rows: Readonly<Record<RowKey, RowInfo>>;
+}
+export declare const JAYLEE_SPRITES: SpriteSet;
 export interface Frame {
     readonly key: RowKey;
     readonly col: number;

@@ -7,7 +7,7 @@
  * chat model) go through `consider`, so she can say yes, or say no when she's
  * worn out.
  */
-import type { Activity, Decision, Habit, Intent, Medium, Mood, Needs, Personality, Traits, WorldEvent } from './types.js';
+import type { Activity, Decision, Source, Habit, Intent, Medium, Mood, Needs, Personality, Traits, WorldEvent } from './types.js';
 export declare const JAYLEE: Personality;
 /** What the brain needs to know about the world to choose well. */
 export interface BrainContext {
@@ -15,6 +15,12 @@ export interface BrainContext {
     ball: 'none' | 'flying' | 'lawn' | 'pool' | 'mouth';
     /** Seconds since she last entered the water (0 on land). */
     timeInWater: number;
+    /** The other dog, if both are in the yard. */
+    friend: {
+        medium: Medium;
+        distance: number;
+        busy: boolean;
+    } | null;
 }
 export interface Option {
     intent: Intent;
@@ -31,7 +37,7 @@ export declare class Brain {
     adjustHabit(habit: Habit): keyof Traits;
     private line;
     /** Needs drift every frame based on what the body is doing. */
-    tick(dt: number, activity: Activity, medium: Medium): void;
+    tick(dt: number, activity: Activity, medium: Medium, friendAround?: boolean): void;
     /** React to something that happened to her. */
     feel(e: WorldEvent): void;
     /** Called when an intent finishes so it can satisfy the matching need. */
@@ -46,5 +52,5 @@ export declare class Brain {
         line: string;
     };
     /** Should she do what she's asked? Returns her answer either way. */
-    consider(intent: Intent, source: 'player' | 'self' | 'chat', ctx: BrainContext): Decision;
+    consider(intent: Intent, source: Source, ctx: BrainContext): Decision;
 }
